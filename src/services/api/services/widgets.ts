@@ -13,6 +13,7 @@ export type CreateWidgetRequest = {
   allowedDomains?: string[];
   customization: WidgetCustomization;
   isActive?: boolean;
+  redirectUrl?: string;
 };
 
 export function useCreateWidgetService() {

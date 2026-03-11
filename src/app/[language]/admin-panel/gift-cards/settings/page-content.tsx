@@ -12,7 +12,6 @@ import Paper from "@mui/material/Paper";
 import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
 import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -28,6 +27,14 @@ function SettingsPage() {
   >("full");
   const [notificationEmails, setNotificationEmails] = useState<string[]>([]);
   const [newEmail, setNewEmail] = useState("");
+  const [paymentMode, setPaymentMode] = useState<"sandbox" | "production">(
+    "sandbox"
+  );
+  const [paymentGateway, setPaymentGateway] = useState<"stripe" | "square">(
+    "stripe"
+  );
+  const [stripeSecretKey, setStripeSecretKey] = useState("");
+  const [stripeWebhookSecret, setStripeWebhookSecret] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
@@ -43,6 +50,10 @@ function SettingsPage() {
           setCurrency(data.currency);
           setDefaultRedemptionType(data.defaultRedemptionType);
           setNotificationEmails(data.notificationEmails || []);
+          setPaymentMode(data.paymentMode || "sandbox");
+          setPaymentGateway(data.paymentGateway || "stripe");
+          setStripeSecretKey(data.stripeSecretKey || "");
+          setStripeWebhookSecret(data.stripeWebhookSecret || "");
         }
       })
       .catch(() => {})
@@ -59,6 +70,10 @@ function SettingsPage() {
         currency,
         defaultRedemptionType,
         notificationEmails,
+        paymentMode,
+        paymentGateway,
+        stripeSecretKey,
+        stripeWebhookSecret,
       });
       if (status === HTTP_CODES_ENUM.OK) {
         setSuccess("Settings saved. Refresh the page to see currency changes.");
@@ -70,7 +85,16 @@ function SettingsPage() {
     } finally {
       setSaving(false);
     }
-  }, [currency, defaultRedemptionType, notificationEmails, updateSettings]);
+  }, [
+    currency,
+    defaultRedemptionType,
+    notificationEmails,
+    paymentMode,
+    paymentGateway,
+    stripeSecretKey,
+    stripeWebhookSecret,
+    updateSettings,
+  ]);
 
   const addEmail = useCallback(() => {
     const email = newEmail.trim().toLowerCase();
@@ -146,6 +170,100 @@ function SettingsPage() {
               <MenuItem value="full">Single Use (Full Balance)</MenuItem>
               <MenuItem value="partial">Partial Redemption Allowed</MenuItem>
             </TextField>
+          </Paper>
+        </Grid>
+
+        <Grid size={12}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Payment Mode
+            </Typography>
+            <TextField
+              select
+              value={paymentMode}
+              onChange={(e) =>
+                setPaymentMode(e.target.value as "sandbox" | "production")
+              }
+              fullWidth
+              helperText={
+                paymentMode === "sandbox"
+                  ? "Sandbox — no real charges are made. Gift cards are created immediately for testing."
+                  : "Production — real payments are processed through your chosen payment gateway."
+              }
+            >
+              <MenuItem value="sandbox">Sandbox (Testing)</MenuItem>
+              <MenuItem value="production">Production (Live Payments)</MenuItem>
+            </TextField>
+
+            {paymentMode === "production" && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Payment Gateway
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Paper
+                      variant="outlined"
+                      onClick={() => setPaymentGateway("stripe")}
+                      sx={{
+                        p: 2,
+                        cursor: "pointer",
+                        borderColor:
+                          paymentGateway === "stripe"
+                            ? "primary.main"
+                            : undefined,
+                        borderWidth: paymentGateway === "stripe" ? 2 : 1,
+                      }}
+                    >
+                      <Typography variant="subtitle2">Stripe</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Accept card payments via Stripe Checkout
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 2,
+                        opacity: 0.5,
+                        cursor: "not-allowed",
+                      }}
+                    >
+                      <Typography variant="subtitle2">
+                        Square{" "}
+                        <Chip label="Coming Soon" size="small" sx={{ ml: 1 }} />
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Accept payments via Square
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+
+                {paymentGateway === "stripe" && (
+                  <Box sx={{ mt: 3 }}>
+                    <TextField
+                      label="Stripe Secret Key"
+                      value={stripeSecretKey}
+                      onChange={(e) => setStripeSecretKey(e.target.value)}
+                      fullWidth
+                      type="password"
+                      helperText="Starts with sk_live_ or sk_test_"
+                      sx={{ mb: 2 }}
+                    />
+                    <TextField
+                      label="Stripe Webhook Secret"
+                      value={stripeWebhookSecret}
+                      onChange={(e) => setStripeWebhookSecret(e.target.value)}
+                      fullWidth
+                      type="password"
+                      helperText="Starts with whsec_. Set your webhook endpoint to: https://gift-cards-server.nomadsoft.us/api/v1/gift-cards/stripe-webhook"
+                    />
+                  </Box>
+                )}
+              </Box>
+            )}
           </Paper>
         </Grid>
 

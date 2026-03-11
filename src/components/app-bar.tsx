@@ -167,6 +167,14 @@ function ResponsiveAppBar() {
                   Templates
                 </MenuItem>,
                 <MenuItem
+                  key="generate"
+                  onClick={handleCloseNavMenu}
+                  component={Link}
+                  href="/admin-panel/gift-cards/generate"
+                >
+                  Generate
+                </MenuItem>,
+                <MenuItem
                   key="purchases"
                   onClick={handleCloseNavMenu}
                   component={Link}
@@ -273,6 +281,10 @@ function ResponsiveAppBar() {
                     {
                       href: "/admin-panel/gift-cards/templates",
                       text: "Templates",
+                    },
+                    {
+                      href: "/admin-panel/gift-cards/generate",
+                      text: "Generate",
                     },
                     {
                       href: "/admin-panel/gift-cards/purchases",

@@ -1,7 +1,7 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -15,6 +15,9 @@ import LinearProgress from "@mui/material/LinearProgress";
 import { useGetWidgetByApiKeyService } from "@/services/api/services/widgets";
 import { useGetGiftCardTemplatePublicService } from "@/services/api/services/gift-card-templates";
 import { usePurchaseGiftCardService } from "@/services/api/services/gift-cards";
+import { useCreateCheckoutSessionService } from "@/services/api/services/gift-cards";
+import { useGetGiftCardByStripeSessionService } from "@/services/api/services/gift-cards";
+import { useGetPublicPaymentConfigService } from "@/services/api/services/settings";
 import HTTP_CODES_ENUM from "@/services/api/types/http-codes";
 import { Widget } from "@/services/api/types/widget";
 import { GiftCardTemplate } from "@/services/api/types/gift-card-template";
@@ -27,10 +30,15 @@ const specialElite = Special_Elite({ weight: "400", subsets: ["latin"] });
 export default function WidgetPageContent() {
   const { symbol: CURRENCY_SYMBOL } = useCurrency();
   const params = useParams<{ apiKey: string }>();
+  const searchParams = useSearchParams();
 
   const getWidget = useGetWidgetByApiKeyService();
   const getTemplate = useGetGiftCardTemplatePublicService();
   const purchaseGiftCard = usePurchaseGiftCardService();
+  const createCheckoutSession = useCreateCheckoutSessionService();
+  const getPaymentConfig = useGetPublicPaymentConfigService();
+  const getGiftCardByStripeSession = useGetGiftCardByStripeSessionService();
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [widget, setWidget] = useState<Widget | null>(null);
   const [template, setTemplate] = useState<GiftCardTemplate | null>(null);
@@ -46,16 +54,61 @@ export default function WidgetPageContent() {
   const [notes, setNotes] = useState("");
   const [purchasedCard, setPurchasedCard] = useState<GiftCard | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+  const [paymentConfig, setPaymentConfig] = useState<{
+    paymentMode: string;
+    paymentGateway: string;
+  }>({ paymentMode: "sandbox", paymentGateway: "stripe" });
+
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
+  const pollForGiftCard = useCallback(
+    (sessionId: string) => {
+      setPurchasing(true);
+      let attempts = 0;
+      pollRef.current = setInterval(async () => {
+        attempts++;
+        try {
+          const { status, data } = await getGiftCardByStripeSession(sessionId);
+          if (status === HTTP_CODES_ENUM.OK && data?.id) {
+            if (pollRef.current) clearInterval(pollRef.current);
+            setPurchasedCard(data);
+            setActiveStep(3);
+            setPurchasing(false);
+          }
+        } catch {
+          // keep polling
+        }
+        if (attempts >= 30) {
+          if (pollRef.current) clearInterval(pollRef.current);
+          setPurchasing(false);
+          setError(
+            "Payment received but gift card is still processing. Check your email shortly."
+          );
+        }
+      }, 2000);
+    },
+    [getGiftCardByStripeSession]
+  );
 
   useEffect(() => {
     async function load() {
       if (!params.apiKey) return;
       try {
-        const { status, data } = await getWidget(params.apiKey);
-        if (status === HTTP_CODES_ENUM.OK && data) {
-          setWidget(data);
+        const [widgetRes, paymentRes] = await Promise.all([
+          getWidget(params.apiKey),
+          getPaymentConfig(),
+        ]);
+        if (paymentRes.status === HTTP_CODES_ENUM.OK && paymentRes.data) {
+          setPaymentConfig(paymentRes.data);
+        }
+        if (widgetRes.status === HTTP_CODES_ENUM.OK && widgetRes.data) {
+          setWidget(widgetRes.data);
           const { status: tStatus, data: tData } = await getTemplate(
-            data.templateId
+            widgetRes.data.templateId
           );
           if (tStatus === HTTP_CODES_ENUM.OK) setTemplate(tData);
         } else {
@@ -66,30 +119,67 @@ export default function WidgetPageContent() {
       } finally {
         setLoading(false);
       }
+
+      const sessionId = searchParams.get("session_id");
+      if (sessionId) {
+        pollForGiftCard(sessionId);
+      }
     }
     load();
-  }, [params.apiKey, getWidget, getTemplate]);
+  }, [
+    params.apiKey,
+    getWidget,
+    getTemplate,
+    getPaymentConfig,
+    searchParams,
+    pollForGiftCard,
+  ]);
 
   const handlePurchase = async () => {
     if (!widget || !template) return;
     setPurchasing(true);
     setError(null);
+
+    const purchaseData = {
+      templateId: widget.templateId,
+      widgetId: widget.id,
+      originalAmount: parseFloat(amount),
+      purchaserName,
+      purchaserEmail,
+      recipientName: recipientName || undefined,
+      recipientEmail: recipientEmail || undefined,
+      notes: notes || undefined,
+    };
+
     try {
-      const { status, data } = await purchaseGiftCard({
-        templateId: widget.templateId,
-        widgetId: widget.id,
-        originalAmount: parseFloat(amount),
-        purchaserName,
-        purchaserEmail,
-        recipientName: recipientName || undefined,
-        recipientEmail: recipientEmail || undefined,
-        notes: notes || undefined,
-      });
-      if (status === HTTP_CODES_ENUM.CREATED) {
-        setPurchasedCard(data);
-        setActiveStep(3);
+      if (
+        paymentConfig.paymentMode === "production" &&
+        paymentConfig.paymentGateway === "stripe"
+      ) {
+        const fallbackUrl = `${window.location.origin}/widget/${params.apiKey}`;
+        const redirectBase = widget.redirectUrl || fallbackUrl;
+        const separator = redirectBase.includes("?") ? "&" : "?";
+        const { status, data } = await createCheckoutSession({
+          ...purchaseData,
+          successUrl: `${redirectBase}${separator}session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: redirectBase,
+        });
+        if (status === HTTP_CODES_ENUM.OK && data?.url) {
+          const target = window.top || window;
+          target.location.href = data.url;
+        } else {
+          setError("Failed to start payment. Please try again.");
+          setPurchasing(false);
+        }
+        return;
       } else {
-        setError("Purchase failed. Please try again.");
+        const { status, data } = await purchaseGiftCard(purchaseData);
+        if (status === HTTP_CODES_ENUM.CREATED) {
+          setPurchasedCard(data);
+          setActiveStep(3);
+        } else {
+          setError("Purchase failed. Please try again.");
+        }
       }
     } catch {
       setError("Purchase failed. Please try again.");
@@ -381,8 +471,9 @@ export default function WidgetPageContent() {
                 )}
               </Paper>
               <Alert severity="info" sx={{ mb: 2 }}>
-                Payment integration coming soon. This is a test purchase — no
-                charge will be made.
+                {paymentConfig.paymentMode === "sandbox"
+                  ? "Sandbox mode — no charge will be made. Gift card will be created immediately."
+                  : "You will be redirected to complete payment securely."}
               </Alert>
               <Box sx={{ display: "flex", gap: 2 }}>
                 <Button
@@ -402,7 +493,9 @@ export default function WidgetPageContent() {
                   }}
                 >
                   {purchasing
-                    ? "Processing..."
+                    ? paymentConfig.paymentMode === "production"
+                      ? "Waiting for payment..."
+                      : "Processing..."
                     : c.buttonText || "Buy Gift Card"}
                 </Button>
               </Box>

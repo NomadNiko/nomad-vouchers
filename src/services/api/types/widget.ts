@@ -21,6 +21,7 @@ export interface Widget {
   customization: WidgetCustomization;
   isActive: boolean;
   createdBy: string;
+  redirectUrl?: string;
   createdAt: string;
   updatedAt: string;
 }

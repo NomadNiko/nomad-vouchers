@@ -31,6 +31,25 @@ export function usePurchaseGiftCardService() {
   );
 }
 
+// --- Create Checkout Session (Public, Stripe) ---
+export type CreateCheckoutSessionRequest = PurchaseGiftCardRequest & {
+  successUrl: string;
+  cancelUrl: string;
+};
+
+export function useCreateCheckoutSessionService() {
+  const fetch = useFetch();
+  return useCallback(
+    (data: CreateCheckoutSessionRequest, requestConfig?: RequestConfigType) =>
+      fetch(`${API_URL}/v1/gift-cards/create-checkout-session`, {
+        method: "POST",
+        body: JSON.stringify(data),
+        ...requestConfig,
+      }).then(wrapperFetchJsonResponse<{ sessionId: string; url: string }>),
+    [fetch]
+  );
+}
+
 // --- List (Admin) ---
 export type GetGiftCardsRequest = {
   page: number;
@@ -92,6 +111,19 @@ export function useGetGiftCardsByEmailService() {
         method: "GET",
         ...requestConfig,
       }).then(wrapperFetchJsonResponse<GiftCard[]>),
+    [fetch]
+  );
+}
+
+// --- Lookup by Stripe Session (Public) ---
+export function useGetGiftCardByStripeSessionService() {
+  const fetch = useFetch();
+  return useCallback(
+    (sessionId: string, requestConfig?: RequestConfigType) =>
+      fetch(`${API_URL}/v1/gift-cards/stripe-session/${sessionId}`, {
+        method: "GET",
+        ...requestConfig,
+      }).then(wrapperFetchJsonResponse<GiftCard>),
     [fetch]
   );
 }

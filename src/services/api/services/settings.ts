@@ -21,6 +21,10 @@ export type UpdateSettingsRequest = {
   currency?: "GBP" | "EUR" | "USD";
   defaultRedemptionType?: "partial" | "full";
   notificationEmails?: string[];
+  paymentMode?: "sandbox" | "production";
+  paymentGateway?: "stripe" | "square";
+  stripeSecretKey?: string;
+  stripeWebhookSecret?: string;
 };
 
 export function useUpdateSettingsService() {
@@ -32,6 +36,23 @@ export function useUpdateSettingsService() {
         body: JSON.stringify(data),
         ...requestConfig,
       }).then(wrapperFetchJsonResponse<Settings>),
+    [fetch]
+  );
+}
+
+export function useGetPublicPaymentConfigService() {
+  const fetch = useFetch();
+  return useCallback(
+    (requestConfig?: RequestConfigType) =>
+      fetch(`${API_URL}/v1/settings/public/payment-config`, {
+        method: "GET",
+        ...requestConfig,
+      }).then(
+        wrapperFetchJsonResponse<{
+          paymentMode: string;
+          paymentGateway: string;
+        }>
+      ),
     [fetch]
   );
 }

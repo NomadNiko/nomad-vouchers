@@ -35,6 +35,7 @@ type FormData = {
   headerText: string;
   footerText: string;
   isActive: boolean;
+  redirectUrl: string;
 };
 
 function CreateWidget() {
@@ -67,6 +68,7 @@ function CreateWidget() {
       headerText: "",
       footerText: "",
       isActive: true,
+      redirectUrl: "",
     },
   });
 
@@ -91,6 +93,7 @@ function CreateWidget() {
           footerText: formData.footerText || undefined,
         },
         isActive: formData.isActive,
+        redirectUrl: formData.redirectUrl || undefined,
       });
       if (status === HTTP_CODES_ENUM.CREATED) {
         router.push("/admin-panel/gift-cards/widgets");
@@ -367,6 +370,22 @@ function CreateWidget() {
               control={control}
               render={({ field }) => (
                 <TextField {...field} label="Title Display" fullWidth />
+              )}
+            />
+          </Grid>
+
+          <Grid size={12}>
+            <Controller
+              name="redirectUrl"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Redirect URL (for Stripe payments)"
+                  fullWidth
+                  placeholder="https://yoursite.com/gift-cards"
+                  helperText="The page where this widget is embedded. After Stripe payment, users are redirected back here."
+                />
               )}
             />
           </Grid>
