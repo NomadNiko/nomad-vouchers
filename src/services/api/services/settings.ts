@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import useFetch from "../use-fetch";
 import { API_URL } from "../config";
 import wrapperFetchJsonResponse from "../wrapper-fetch-json-response";
-import { Settings } from "../types/settings";
+import { Settings, SquarespacePayLink } from "../types/settings";
 import { RequestConfigType } from "./types/request-config";
 
 export function useGetSettingsService() {
@@ -22,9 +22,12 @@ export type UpdateSettingsRequest = {
   defaultRedemptionType?: "partial" | "full";
   notificationEmails?: string[];
   paymentMode?: "sandbox" | "production";
-  paymentGateway?: "stripe" | "square";
+  paymentGateway?: "stripe" | "square" | "squarespace";
   stripeSecretKey?: string;
   stripeWebhookSecret?: string;
+  squarespaceApiKey?: string;
+  squarespacePollingInterval?: number;
+  squarespacePayLinks?: SquarespacePayLink[];
 };
 
 export function useUpdateSettingsService() {

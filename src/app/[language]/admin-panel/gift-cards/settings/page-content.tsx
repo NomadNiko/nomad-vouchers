@@ -13,11 +13,22 @@ import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
+import IconButton from "@mui/material/IconButton";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
 import { useState, useEffect, useCallback } from "react";
 import {
   useGetSettingsService,
   useUpdateSettingsService,
 } from "@/services/api/services/settings";
+import { useGetActiveGiftCardTemplatesService } from "@/services/api/services/gift-card-templates";
+import { SquarespacePayLink } from "@/services/api/types/settings";
+import { GiftCardTemplate } from "@/services/api/types/gift-card-template";
 import HTTP_CODES_ENUM from "@/services/api/types/http-codes";
 
 function SettingsPage() {
@@ -30,34 +41,59 @@ function SettingsPage() {
   const [paymentMode, setPaymentMode] = useState<"sandbox" | "production">(
     "sandbox"
   );
-  const [paymentGateway, setPaymentGateway] = useState<"stripe" | "square">(
-    "stripe"
-  );
+  const [paymentGateway, setPaymentGateway] = useState<
+    "stripe" | "square" | "squarespace"
+  >("stripe");
   const [stripeSecretKey, setStripeSecretKey] = useState("");
   const [stripeWebhookSecret, setStripeWebhookSecret] = useState("");
+  const [squarespaceApiKey, setSquarespaceApiKey] = useState("");
+  const [squarespacePollingInterval, setSquarespacePollingInterval] =
+    useState(30);
+  const [squarespacePayLinks, setSquarespacePayLinks] = useState<
+    SquarespacePayLink[]
+  >([]);
+  const [templates, setTemplates] = useState<GiftCardTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Pay link dialog
+  const [payLinkDialogOpen, setPayLinkDialogOpen] = useState(false);
+  const [editingPayLink, setEditingPayLink] =
+    useState<SquarespacePayLink | null>(null);
+  const [plName, setPlName] = useState("");
+  const [plProductName, setPlProductName] = useState("");
+  const [plTemplateId, setPlTemplateId] = useState("");
+
   const getSettings = useGetSettingsService();
   const updateSettings = useUpdateSettingsService();
+  const getActiveTemplates = useGetActiveGiftCardTemplatesService();
 
   useEffect(() => {
-    getSettings()
-      .then(({ status, data }) => {
-        if (status === HTTP_CODES_ENUM.OK && data) {
-          setCurrency(data.currency);
-          setDefaultRedemptionType(data.defaultRedemptionType);
-          setNotificationEmails(data.notificationEmails || []);
-          setPaymentMode(data.paymentMode || "sandbox");
-          setPaymentGateway(data.paymentGateway || "stripe");
-          setStripeSecretKey(data.stripeSecretKey || "");
-          setStripeWebhookSecret(data.stripeWebhookSecret || "");
+    Promise.all([getSettings(), getActiveTemplates()]).then(
+      ([settingsRes, templatesRes]) => {
+        if (settingsRes.status === HTTP_CODES_ENUM.OK && settingsRes.data) {
+          const d = settingsRes.data;
+          setCurrency(d.currency);
+          setDefaultRedemptionType(d.defaultRedemptionType);
+          setNotificationEmails(d.notificationEmails || []);
+          setPaymentMode(d.paymentMode || "sandbox");
+          setPaymentGateway(d.paymentGateway || "stripe");
+          setStripeSecretKey(d.stripeSecretKey || "");
+          setStripeWebhookSecret(d.stripeWebhookSecret || "");
+          setSquarespaceApiKey(d.squarespaceApiKey || "");
+          setSquarespacePollingInterval(d.squarespacePollingInterval || 30);
+          setSquarespacePayLinks(d.squarespacePayLinks || []);
         }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+        if (templatesRes.status === HTTP_CODES_ENUM.OK && templatesRes.data) {
+          setTemplates(
+            Array.isArray(templatesRes.data) ? templatesRes.data : []
+          );
+        }
+        setLoading(false);
+      }
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -74,6 +110,9 @@ function SettingsPage() {
         paymentGateway,
         stripeSecretKey,
         stripeWebhookSecret,
+        squarespaceApiKey,
+        squarespacePollingInterval,
+        squarespacePayLinks,
       });
       if (status === HTTP_CODES_ENUM.OK) {
         setSuccess("Settings saved. Refresh the page to see currency changes.");
@@ -93,6 +132,9 @@ function SettingsPage() {
     paymentGateway,
     stripeSecretKey,
     stripeWebhookSecret,
+    squarespaceApiKey,
+    squarespacePollingInterval,
+    squarespacePayLinks,
     updateSettings,
   ]);
 
@@ -107,6 +149,58 @@ function SettingsPage() {
   const removeEmail = useCallback((email: string) => {
     setNotificationEmails((prev) => prev.filter((e) => e !== email));
   }, []);
+
+  const openAddPayLink = () => {
+    setEditingPayLink(null);
+    setPlName("");
+    setPlProductName("");
+    setPlTemplateId(templates[0]?.id || "");
+    setPayLinkDialogOpen(true);
+  };
+
+  const openEditPayLink = (pl: SquarespacePayLink) => {
+    setEditingPayLink(pl);
+    setPlName(pl.name);
+    setPlProductName(pl.productName);
+    setPlTemplateId(pl.templateId);
+    setPayLinkDialogOpen(true);
+  };
+
+  const savePayLink = () => {
+    if (!plName.trim() || !plProductName.trim() || !plTemplateId) return;
+    if (editingPayLink) {
+      setSquarespacePayLinks((prev) =>
+        prev.map((pl) =>
+          pl.id === editingPayLink.id
+            ? {
+                ...pl,
+                name: plName.trim(),
+                productName: plProductName.trim(),
+                templateId: plTemplateId,
+              }
+            : pl
+        )
+      );
+    } else {
+      setSquarespacePayLinks((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          name: plName.trim(),
+          productName: plProductName.trim(),
+          templateId: plTemplateId,
+        },
+      ]);
+    }
+    setPayLinkDialogOpen(false);
+  };
+
+  const deletePayLink = (id: string) => {
+    setSquarespacePayLinks((prev) => prev.filter((pl) => pl.id !== id));
+  };
+
+  const getTemplateName = (templateId: string) =>
+    templates.find((t) => t.id === templateId)?.name || templateId;
 
   if (loading) return <LinearProgress />;
 
@@ -201,7 +295,7 @@ function SettingsPage() {
                   Payment Gateway
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid size={{ xs: 12, sm: 6 }}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
                     <Paper
                       variant="outlined"
                       onClick={() => setPaymentGateway("stripe")}
@@ -221,7 +315,7 @@ function SettingsPage() {
                       </Typography>
                     </Paper>
                   </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
                     <Paper
                       variant="outlined"
                       sx={{
@@ -236,6 +330,26 @@ function SettingsPage() {
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Accept payments via Square
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    <Paper
+                      variant="outlined"
+                      onClick={() => setPaymentGateway("squarespace")}
+                      sx={{
+                        p: 2,
+                        cursor: "pointer",
+                        borderColor:
+                          paymentGateway === "squarespace"
+                            ? "primary.main"
+                            : undefined,
+                        borderWidth: paymentGateway === "squarespace" ? 2 : 1,
+                      }}
+                    >
+                      <Typography variant="subtitle2">Squarespace</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Auto-create gift cards from Squarespace orders
                       </Typography>
                     </Paper>
                   </Grid>
@@ -260,6 +374,106 @@ function SettingsPage() {
                       type="password"
                       helperText="Starts with whsec_. Set your webhook endpoint to: https://gift-cards-server.nomadsoft.us/api/v1/gift-cards/stripe-webhook"
                     />
+                  </Box>
+                )}
+
+                {paymentGateway === "squarespace" && (
+                  <Box sx={{ mt: 3 }}>
+                    <TextField
+                      label="Squarespace API Key"
+                      value={squarespaceApiKey}
+                      onChange={(e) => setSquarespaceApiKey(e.target.value)}
+                      fullWidth
+                      type="password"
+                      helperText="Generate this in your Squarespace site under Settings → Advanced → Developer API Keys"
+                      sx={{ mb: 2 }}
+                    />
+                    <TextField
+                      label="Polling Interval (seconds)"
+                      value={squarespacePollingInterval}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        if (!isNaN(v)) setSquarespacePollingInterval(v);
+                      }}
+                      fullWidth
+                      type="number"
+                      inputProps={{ min: 30, max: 300 }}
+                      helperText="How often to check Squarespace for new orders (30–300 seconds)"
+                      sx={{ mb: 3 }}
+                    />
+
+                    <Typography variant="subtitle1" gutterBottom>
+                      Connected Pay Links
+                    </Typography>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      Each pay link product name must be unique and must not be
+                      a substring of another. For example, do not create both
+                      &quot;Gift Cards&quot; and &quot;Buy Gift Cards&quot; —
+                      the exact product name from your Squarespace pay link is
+                      used for matching.
+                    </Alert>
+
+                    {squarespacePayLinks.map((pl) => (
+                      <Paper
+                        key={pl.id}
+                        variant="outlined"
+                        sx={{
+                          p: 2,
+                          mb: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Box>
+                          <Typography variant="subtitle2">{pl.name}</Typography>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ fontFamily: "monospace" }}
+                          >
+                            {pl.productName}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Template: {getTemplateName(pl.templateId)}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <IconButton
+                            size="small"
+                            onClick={() => openEditPayLink(pl)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => deletePayLink(pl.id)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </Paper>
+                    ))}
+
+                    {squarespacePayLinks.length === 0 && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 1 }}
+                      >
+                        No pay links configured. Add one to start processing
+                        Squarespace orders.
+                      </Typography>
+                    )}
+
+                    <Button
+                      variant="outlined"
+                      startIcon={<AddIcon />}
+                      onClick={openAddPayLink}
+                      sx={{ mt: 1 }}
+                    >
+                      Add Pay Link
+                    </Button>
                   </Box>
                 )}
               </Box>
@@ -323,6 +537,59 @@ function SettingsPage() {
           </Button>
         </Grid>
       </Grid>
+
+      {/* Pay Link Add/Edit Dialog */}
+      <Dialog
+        open={payLinkDialogOpen}
+        onClose={() => setPayLinkDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingPayLink ? "Edit Pay Link" : "Add Pay Link"}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Display Name"
+            value={plName}
+            onChange={(e) => setPlName(e.target.value)}
+            fullWidth
+            helperText="Internal name for this pay link"
+            sx={{ mt: 1, mb: 2 }}
+          />
+          <TextField
+            label="Squarespace Product Name"
+            value={plProductName}
+            onChange={(e) => setPlProductName(e.target.value)}
+            fullWidth
+            helperText="The exact product name as it appears in Squarespace"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            select
+            label="Gift Card Template"
+            value={plTemplateId}
+            onChange={(e) => setPlTemplateId(e.target.value)}
+            fullWidth
+          >
+            {templates.map((t) => (
+              <MenuItem key={t.id} value={t.id}>
+                {t.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPayLinkDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={savePayLink}
+            disabled={!plName.trim() || !plProductName.trim() || !plTemplateId}
+          >
+            {editingPayLink ? "Update" : "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
