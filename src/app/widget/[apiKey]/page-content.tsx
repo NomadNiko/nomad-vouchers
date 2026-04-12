@@ -17,6 +17,7 @@ import { useGetGiftCardTemplatePublicService } from "@/services/api/services/gif
 import { usePurchaseGiftCardService } from "@/services/api/services/gift-cards";
 import { useCreateCheckoutSessionService } from "@/services/api/services/gift-cards";
 import { useGetGiftCardByStripeSessionService } from "@/services/api/services/gift-cards";
+import { useNotifyPurchaseService } from "@/services/api/services/gift-cards";
 import { useGetPublicPaymentConfigService } from "@/services/api/services/settings";
 import HTTP_CODES_ENUM from "@/services/api/types/http-codes";
 import { Widget } from "@/services/api/types/widget";
@@ -38,6 +39,7 @@ export default function WidgetPageContent() {
   const createCheckoutSession = useCreateCheckoutSessionService();
   const getPaymentConfig = useGetPublicPaymentConfigService();
   const getGiftCardByStripeSession = useGetGiftCardByStripeSessionService();
+  const notifyPurchase = useNotifyPurchaseService();
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [widget, setWidget] = useState<Widget | null>(null);
@@ -122,6 +124,7 @@ export default function WidgetPageContent() {
 
       const sessionId = searchParams.get("session_id");
       if (sessionId) {
+        notifyPurchase(sessionId).catch(() => {});
         pollForGiftCard(sessionId);
       }
     }
@@ -133,6 +136,7 @@ export default function WidgetPageContent() {
     getPaymentConfig,
     searchParams,
     pollForGiftCard,
+    notifyPurchase,
   ]);
 
   const handlePurchase = async () => {
