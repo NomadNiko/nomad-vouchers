@@ -6,6 +6,8 @@ import { FetchInputType, FetchInitType } from "./types/fetch-params";
 import useLanguage from "../i18n/use-language";
 import { getTokensInfo, setTokensInfo } from "../auth/auth-tokens-info";
 
+const TENANT_STORAGE_KEY = "currentTenantId";
+
 function useFetch() {
   const language = useLanguage();
 
@@ -21,6 +23,15 @@ function useFetch() {
       let headers: HeadersInit = {
         "x-custom-lang": language,
       };
+
+      // Inject tenant header
+      const tenantId =
+        typeof window !== "undefined"
+          ? localStorage.getItem(TENANT_STORAGE_KEY)
+          : null;
+      if (tenantId) {
+        headers = { ...headers, "x-tenant-id": tenantId };
+      }
 
       if (!(init?.body instanceof FormData)) {
         headers = {
@@ -59,7 +70,7 @@ function useFetch() {
             };
           }
         } catch {
-          // Token refresh failed (e.g. third-party cookie blocked), continue without auth
+          // Token refresh failed
         }
       }
 

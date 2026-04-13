@@ -24,6 +24,8 @@ import { IS_SIGN_UP_ENABLED } from "@/services/auth/config";
 import ListSubheader from "@mui/material/ListSubheader";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { Special_Elite } from "next/font/google";
+import TenantSwitcher from "@/components/tenant-switcher";
+import { useTenant } from "@/services/tenant/tenant-context";
 
 const specialElite = Special_Elite({ weight: "400", subsets: ["latin"] });
 
@@ -68,6 +70,7 @@ function ResponsiveAppBar() {
   const { t } = useTranslation("common");
   const { user, isLoaded } = useAuth();
   const { logOut } = useAuthActions();
+  const { currentTenant, isSuperAdmin } = useTenant();
   const [anchorElementNav, setAnchorElementNav] = useState<null | HTMLElement>(
     null
   );
@@ -89,10 +92,15 @@ function ResponsiveAppBar() {
     setAnchorElementUser(null);
   };
 
+  // Use tenant-scoped role when available, fall back to global role
+  const tenantRole = currentTenant?.role;
   const isAdmin =
-    !!user?.role && [RoleEnum.ADMIN].includes(Number(user?.role?.id));
+    isSuperAdmin ||
+    tenantRole === "admin" ||
+    (!!user?.role && [RoleEnum.ADMIN].includes(Number(user?.role?.id)));
   const isStaff =
-    !!user?.role && [RoleEnum.STAFF].includes(Number(user?.role?.id));
+    tenantRole === "staff" ||
+    (!!user?.role && [RoleEnum.STAFF].includes(Number(user?.role?.id)));
   const isAdminOrStaff = isAdmin || isStaff;
 
   return (
@@ -145,19 +153,21 @@ function ResponsiveAppBar() {
                 component={Link}
                 href="/gift-cards/balance"
               >
-                Check Balance
+                {t("common:navigation.checkBalance")}
               </MenuItem>
 
               {isAdminOrStaff && [
                 <Divider key="d1" />,
-                <ListSubheader key="h2">Manage</ListSubheader>,
+                <ListSubheader key="h2">
+                  {t("common:navigation.manage")}
+                </ListSubheader>,
                 <MenuItem
                   key="redeem"
                   onClick={handleCloseNavMenu}
                   component={Link}
                   href="/admin-panel/gift-cards/redeem"
                 >
-                  Redeem
+                  {t("common:navigation.redeem")}
                 </MenuItem>,
                 <MenuItem
                   key="generate"
@@ -165,7 +175,7 @@ function ResponsiveAppBar() {
                   component={Link}
                   href="/admin-panel/gift-cards/generate"
                 >
-                  Generate
+                  {t("common:navigation.generate")}
                 </MenuItem>,
                 <MenuItem
                   key="purchases"
@@ -173,20 +183,22 @@ function ResponsiveAppBar() {
                   component={Link}
                   href="/admin-panel/gift-cards/purchases"
                 >
-                  Purchases
+                  {t("common:navigation.purchases")}
                 </MenuItem>,
               ]}
 
               {isAdmin && [
                 <Divider key="d2" />,
-                <ListSubheader key="h3">Admin</ListSubheader>,
+                <ListSubheader key="h3">
+                  {t("common:navigation.admin")}
+                </ListSubheader>,
                 <MenuItem
                   key="templates"
                   onClick={handleCloseNavMenu}
                   component={Link}
                   href="/admin-panel/gift-cards/templates"
                 >
-                  Templates
+                  {t("common:navigation.templates")}
                 </MenuItem>,
                 <MenuItem
                   key="widgets"
@@ -194,7 +206,7 @@ function ResponsiveAppBar() {
                   component={Link}
                   href="/admin-panel/gift-cards/widgets"
                 >
-                  Widgets
+                  {t("common:navigation.widgets")}
                 </MenuItem>,
                 <MenuItem
                   key="settings"
@@ -202,7 +214,7 @@ function ResponsiveAppBar() {
                   component={Link}
                   href="/admin-panel/gift-cards/settings"
                 >
-                  Settings
+                  {t("common:navigation.settings")}
                 </MenuItem>,
                 <MenuItem
                   key="users"
@@ -222,7 +234,19 @@ function ResponsiveAppBar() {
                   component={Link}
                   href="/admin-panel/gift-cards/docs"
                 >
-                  Docs
+                  {t("common:navigation.docs")}
+                </MenuItem>,
+              ]}
+
+              {isSuperAdmin && [
+                <Divider key="d4" />,
+                <MenuItem
+                  key="vendor-admin"
+                  onClick={handleCloseNavMenu}
+                  component={Link}
+                  href="/admin-panel/vendor-admin"
+                >
+                  {t("common:navigation.vendorAdmin")}
                 </MenuItem>,
               ]}
 
@@ -279,24 +303,24 @@ function ResponsiveAppBar() {
               component={Link}
               href="/gift-cards/balance"
             >
-              Check Balance
+              {t("common:navigation.checkBalance")}
             </Button>
 
             {isAdminOrStaff && (
               <NavDropdown
-                label="Manage"
+                label={t("common:navigation.manage")}
                 items={[
                   {
                     href: "/admin-panel/gift-cards/redeem",
-                    text: "Redeem",
+                    text: t("common:navigation.redeem"),
                   },
                   {
                     href: "/admin-panel/gift-cards/generate",
-                    text: "Generate",
+                    text: t("common:navigation.generate"),
                   },
                   {
                     href: "/admin-panel/gift-cards/purchases",
-                    text: "Purchases",
+                    text: t("common:navigation.purchases"),
                   },
                 ]}
               />
@@ -304,23 +328,23 @@ function ResponsiveAppBar() {
 
             {isAdmin && (
               <NavDropdown
-                label="Admin"
+                label={t("common:navigation.admin")}
                 items={[
                   {
                     href: "/admin-panel/gift-cards/templates",
-                    text: "Templates",
+                    text: t("common:navigation.templates"),
                   },
                   {
                     href: "/admin-panel/gift-cards/widgets",
-                    text: "Widgets",
+                    text: t("common:navigation.widgets"),
                   },
                   {
                     href: "/admin-panel/gift-cards/settings",
-                    text: "Settings",
+                    text: t("common:navigation.settings"),
                   },
                   {
                     href: "/admin-panel/users",
-                    text: String(t("common:navigation.users")),
+                    text: t("common:navigation.users"),
                   },
                 ]}
               />
@@ -332,12 +356,23 @@ function ResponsiveAppBar() {
                 component={Link}
                 href="/admin-panel/gift-cards/docs"
               >
-                Docs
+                {t("common:navigation.docs")}
+              </Button>
+            )}
+
+            {isSuperAdmin && (
+              <Button
+                sx={{ my: 2, color: "white" }}
+                component={Link}
+                href="/admin-panel/vendor-admin"
+              >
+                {t("common:navigation.vendorAdmin")}
               </Button>
             )}
           </Box>
 
-          <Box sx={{ display: "flex", mr: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", mr: 1 }}>
+            <TenantSwitcher />
             <ThemeSwitchButton />
           </Box>
 

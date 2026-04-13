@@ -4,7 +4,8 @@
     "column1": "ID",
     "column2": "Name",
     "column3": "Email",
-    "column4": "Role"
+    "column4": "Role",
+    "column5": "Tenants"
   },
   "actions": {
     "add": "Add User",
@@ -29,7 +30,8 @@
         "options": {
           "1": "Admin",
           "2": "User",
-          "3": "Staff"
+          "3": "Staff",
+          "4": "Super Admin"
         }
       }
     }

@@ -46,8 +46,10 @@ export function useUpdateSettingsService() {
 export function useGetPublicPaymentConfigService() {
   const fetch = useFetch();
   return useCallback(
-    (requestConfig?: RequestConfigType) =>
-      fetch(`${API_URL}/v1/settings/public/payment-config`, {
+    (tenantId?: string, requestConfig?: RequestConfigType) => {
+      let url = `${API_URL}/v1/settings/public/payment-config`;
+      if (tenantId) url += `?tenantId=${tenantId}`;
+      return fetch(url, {
         method: "GET",
         ...requestConfig,
       }).then(
@@ -55,7 +57,8 @@ export function useGetPublicPaymentConfigService() {
           paymentMode: string;
           paymentGateway: string;
         }>
-      ),
+      );
+    },
     [fetch]
   );
 }

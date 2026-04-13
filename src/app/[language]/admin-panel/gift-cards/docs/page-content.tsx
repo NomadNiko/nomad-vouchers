@@ -25,6 +25,7 @@ type Section =
   | "widgets"
   | "settings"
   | "users"
+  | "vendor-admin"
   | "developer";
 
 const sections: { id: Section; label: string; badge?: string }[] = [
@@ -37,6 +38,7 @@ const sections: { id: Section; label: string; badge?: string }[] = [
   { id: "widgets", label: "Widgets", badge: "Admin" },
   { id: "settings", label: "Settings", badge: "Admin" },
   { id: "users", label: "User Management", badge: "Admin" },
+  { id: "vendor-admin", label: "Vendor Admin", badge: "Super Admin" },
   { id: "developer", label: "Developer Guide", badge: "Technical" },
 ];
 
@@ -97,18 +99,48 @@ function OverviewSection() {
     <>
       <SectionTitle>Overview</SectionTitle>
       <P>
-        This application manages the full lifecycle of gift vouchers — from
-        creating templates and selling cards through your website, to redeeming
-        them in-house and tracking every transaction.
+        This is a multi-tenant platform that manages the full lifecycle of gift
+        vouchers — from creating templates and selling cards through your
+        website, to redeeming them in-house and tracking every transaction. A
+        single deployment serves multiple clients (tenants), each with their own
+        isolated templates, gift cards, widgets, settings, and users.
+      </P>
+      <Sub>Multi-Tenant Architecture</Sub>
+      <P>
+        Each client operates as a separate tenant. Data is fully isolated — a
+        tenant admin can only see and manage their own client&apos;s gift cards,
+        templates, widgets, settings, and users. Super admins can see and manage
+        all tenants.
+      </P>
+      <P>
+        The Tenant Switcher in the top-right of the navigation bar shows the
+        current tenant name. If you have access to multiple tenants, click it to
+        switch between them. The page reloads with the new tenant&apos;s data.
       </P>
       <Sub>Role Permissions</Sub>
-      <P>
-        There are two staff-facing roles. Your permissions depend on which role
-        your account has been assigned.
-      </P>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2" gutterBottom>
-          Staff
+          Super Admin (Global)
+        </Typography>
+        <Typography variant="body2">
+          Access to all tenants and all features. Can provision new clients via
+          the Vendor Admin page, manage user access across tenants, and see all
+          users with their tenant memberships.
+        </Typography>
+      </Paper>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Admin (Per-Tenant)
+        </Typography>
+        <Typography variant="body2">
+          Full access within their assigned tenant(s): templates, widgets,
+          settings, users, plus everything staff can do. Assigned per-tenant via
+          the Vendor Admin page.
+        </Typography>
+      </Paper>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Staff (Per-Tenant)
         </Typography>
         <Typography variant="body2">
           Can check balances, redeem gift vouchers, generate complimentary
@@ -118,38 +150,43 @@ function OverviewSection() {
       </Paper>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2" gutterBottom>
-          Admin
+          User
         </Typography>
         <Typography variant="body2">
-          Everything Staff can do, plus: create and edit templates, manage
-          embeddable purchase widgets, configure system settings (currency,
-          payment gateway, notifications), and manage user accounts.
+          No admin panel access. Can only use public pages (balance lookup, gift
+          voucher view). Users with no tenant assignment see a &quot;Please
+          contact your organisation&quot; page.
         </Typography>
       </Paper>
       <Sub>Navigation</Sub>
       <P>
         The top navigation bar organises features into dropdown menus. Staff
-        members see the Voucher Status and Manage menus. Admins additionally see
-        the Admin menu.
+        members see the Manage menu. Admins additionally see the Admin menu.
+        Super admins see the Vendor Admin link.
       </P>
-      <Img alt="Navigation bar showing Voucher Status, Manage, and Admin dropdown menus" />
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Typography variant="subtitle2">Voucher Status</Typography>
+        <Typography variant="subtitle2">Check Balance</Typography>
         <Typography variant="body2">
-          Check Balance — available to everyone including customers. Redeem —
-          staff and admin only.
+          Available to everyone including customers.
         </Typography>
       </Paper>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2">Manage</Typography>
         <Typography variant="body2">
-          Generate, Purchases (staff and admin). Templates, Widgets (admin
-          only).
+          Redeem, Generate, Purchases (staff and admin).
         </Typography>
       </Paper>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2">Admin</Typography>
-        <Typography variant="body2">Settings, Users (admin only).</Typography>
+        <Typography variant="body2">
+          Templates, Widgets, Settings, Users (admin only).
+        </Typography>
+      </Paper>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2">Vendor Admin</Typography>
+        <Typography variant="body2">
+          Client management (super admin only).
+        </Typography>
       </Paper>
       <Sub>QR Code Scanning</Sub>
       <P>
@@ -604,8 +641,8 @@ function SettingsSection() {
     <>
       <SectionTitle>Settings (Admin Only)</SectionTitle>
       <P>
-        Navigate to Admin → Settings. This page controls system-wide
-        configuration.
+        Navigate to Admin → Settings. This page controls configuration for the
+        currently active tenant. Each client has their own independent settings.
       </P>
       <Img alt="Settings page showing currency, redemption type, payment mode, and notification sections" />
       <Sub>Currency</Sub>
@@ -689,47 +726,130 @@ function UsersSection() {
       <SectionTitle>User Management (Admin Only)</SectionTitle>
       <P>
         Navigate to Admin → Users. This page manages who can access the admin
-        panel and what they can do.
+        panel for the current tenant.
       </P>
-      <Img alt="Users list page with filter and user table" />
-      <Sub>User Roles</Sub>
+      <Sub>How User Access Works</Sub>
+      <P>
+        Users are shared across the platform, but their access to each tenant is
+        managed separately. A user can have different roles in different tenants
+        (e.g. admin in one client, staff in another).
+      </P>
+      <P>
+        Tenant admins see only users who have access to their current tenant.
+        Super admins see all users across all tenants, with a Tenants column
+        showing each user&apos;s tenant memberships as chips.
+      </P>
+      <Sub>User Roles (Per-Tenant)</Sub>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Typography variant="subtitle2">Admin (Role 1)</Typography>
+        <Typography variant="subtitle2">Admin</Typography>
         <Typography variant="body2">
-          Full access to all features: templates, widgets, settings, users, plus
-          everything staff can do.
+          Full access to all features within this tenant: templates, widgets,
+          settings, users, plus everything staff can do.
         </Typography>
       </Paper>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Typography variant="subtitle2">User (Role 2)</Typography>
-        <Typography variant="body2">
-          Standard user with no admin panel access. Can only use public pages
-          (balance lookup, gift voucher view).
-        </Typography>
-      </Paper>
-      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Typography variant="subtitle2">Staff (Role 3)</Typography>
+        <Typography variant="subtitle2">Staff</Typography>
         <Typography variant="body2">
           Can check balances, redeem, generate, view purchases, and access
           documentation. Cannot manage templates, widgets, settings, or users.
         </Typography>
       </Paper>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle2">User</Typography>
+        <Typography variant="body2">
+          Public pages only. No admin panel access.
+        </Typography>
+      </Paper>
       <Sub>Creating a User</Sub>
       <Step n={1}>Click the Create User button.</Step>
       <Step n={2}>Fill in email, password, first name, last name.</Step>
-      <Step n={3}>Select the Role: Admin, User, or Staff.</Step>
-      <Step n={4}>Click Save.</Step>
-      <Img alt="Create user form with email, password, name, and role fields" />
+      <Step n={3}>
+        Select the Role: Admin, User, or Staff. This role applies to the
+        currently active tenant.
+      </Step>
+      <Step n={4}>
+        Click Save. The user is created and automatically granted access to the
+        current tenant with the selected role.
+      </Step>
+      <Alert severity="info" sx={{ my: 2 }}>
+        If the user already exists (same email), the creation will fail. To
+        grant an existing user access to this tenant, use the Vendor Admin page
+        instead.
+      </Alert>
       <Sub>Editing a User</Sub>
       <P>
-        Click on any user in the list to edit their details. You can change
-        their role, name, email, or reset their password.
+        Click Edit on any user to change their details (name, email, password).
+        Role changes here affect the user&apos;s global role. To change a
+        user&apos;s role within a specific tenant, use the Vendor Admin page.
       </P>
       <Sub>Filtering Users</Sub>
+      <P>Use the Filter button to filter users by role.</P>
+    </>
+  );
+}
+
+function VendorAdminSection() {
+  return (
+    <>
+      <SectionTitle>Vendor Admin (Super Admin Only)</SectionTitle>
       <P>
-        Use the role filter dropdown at the top of the users list to show only
-        users of a specific role.
+        Navigate to Vendor Admin in the top navigation bar. This page is only
+        visible to super admin users and provides management of all client
+        tenants.
       </P>
+      <Sub>Client List</Sub>
+      <P>
+        The main Vendor Admin page shows a table of all clients with their name,
+        slug, active/inactive status, creation date, and an Edit button.
+      </P>
+      <Sub>Creating a Client</Sub>
+      <Step n={1}>Click Create Client.</Step>
+      <Step n={2}>
+        Enter the client Name (e.g. &quot;The Hurstwood&quot;). A URL-friendly
+        slug is auto-generated from the name.
+      </Step>
+      <Step n={3}>
+        Optionally edit the Slug. It must contain only lowercase letters,
+        numbers, and hyphens, and must be unique.
+      </Step>
+      <Step n={4}>
+        Click Create. The client is created with default settings (GBP currency,
+        sandbox payment mode).
+      </Step>
+      <Alert severity="info" sx={{ my: 2 }}>
+        After creating a client, you need to add users to it via the Edit page.
+        The client will have no users and no templates until you set them up.
+      </Alert>
+      <Sub>Editing a Client</Sub>
+      <P>
+        Click Edit on any client to modify its name, slug, or active status. You
+        can deactivate a client to prevent access without deleting it.
+      </P>
+      <Sub>Managing User Access</Sub>
+      <P>
+        The bottom half of the Edit Client page shows the User Access section.
+        This is where you control which users can access this client and what
+        role they have within it.
+      </P>
+      <Step n={1}>
+        Select a user from the dropdown (only users not already in this client
+        are shown).
+      </Step>
+      <Step n={2}>
+        Choose a role: Admin (full access), Staff (redeem/generate/view), or
+        User (public pages only).
+      </Step>
+      <Step n={3}>Click Add.</Step>
+      <P>
+        To change a user&apos;s role within this client, use the role dropdown
+        in their row. To remove a user&apos;s access entirely, click the delete
+        icon.
+      </P>
+      <Alert severity="warning" sx={{ my: 2 }}>
+        Removing a user&apos;s access to a client does not delete their account.
+        They simply lose access to that client&apos;s data. They may still have
+        access to other clients.
+      </Alert>
     </>
   );
 }
@@ -745,8 +865,9 @@ function DeveloperSection() {
 
       <Sub>Architecture Overview</Sub>
       <P>
-        The system consists of two separate applications that communicate via
-        REST API:
+        The system is a multi-tenant SaaS platform consisting of two separate
+        applications that communicate via REST API. A single deployment serves
+        all clients, with data isolation via a tenantId field on every document.
       </P>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2">
@@ -755,17 +876,19 @@ function DeveloperSection() {
         <Typography variant="body2" component="div">
           React 19, TypeScript, Material UI, React Hook Form + Yup validation,
           React Query for data fetching, i18next for internationalisation,
-          qrcode.react for QR code rendering. Runs under PM2 as
-          &quot;hurstwood-gift-cards&quot;.
+          qrcode.react for QR code rendering. TenantProvider manages current
+          tenant context; useFetch injects x-tenant-id header on all API calls.
+          Runs under PM2 as &quot;gift-cards-dev&quot;.
         </Typography>
       </Paper>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2">Backend — NestJS</Typography>
         <Typography variant="body2" component="div">
           TypeScript, MongoDB (via Mongoose), Passport JWT authentication,
+          TenantMiddleware + TenantGuard for multi-tenant access control,
           Handlebars email templates, Puppeteer for PDF/image generation,
           @nestjs/event-emitter for internal events. Runs under PM2 as
-          &quot;hurstwood-gift-cards-server&quot;.
+          &quot;gift-cards-dev-server&quot;.
         </Typography>
       </Paper>
 
@@ -781,49 +904,48 @@ function DeveloperSection() {
       >
         <pre
           style={{ margin: 0 }}
-        >{`/var/www/gift-cards/              # Frontend (Next.js)
+        >{`/var/www/gift-cards-dev/              # Frontend (Next.js)
 ├── src/
 │   ├── app/[language]/
-│   │   ├── admin-panel/          # Protected admin pages
+│   │   ├── admin-panel/
+│   │   │   ├── vendor-admin/     # Tenant CRUD (super admin)
+│   │   │   ├── users/            # User management (tenant-scoped)
 │   │   │   └── gift-cards/
 │   │   │       ├── docs/         # This documentation
 │   │   │       ├── generate/     # Generate complimentary cards
 │   │   │       ├── purchases/    # Purchase list
 │   │   │       ├── redeem/       # Redemption console
-│   │   │       ├── settings/     # System settings (admin)
-│   │   │       ├── templates/    # Template CRUD (admin)
-│   │   │       └── widgets/      # Widget CRUD (admin)
-│   │   └── gift-cards/
-│   │       ├── balance/          # Public balance lookup
-│   │       ├── view/[code]/      # Public gift voucher view
-│   │       └── qr/[code]/        # QR redirect handler
+│   │   │       ├── settings/     # Per-tenant settings
+│   │   │       ├── templates/    # Template CRUD
+│   │   │       └── widgets/      # Widget CRUD
+│   │   ├── gift-cards/
+│   │   │   ├── balance/          # Public balance lookup
+│   │   │   ├── view/[code]/      # Public gift voucher view
+│   │   │   └── qr/[code]/        # QR redirect handler
+│   │   └── no-access/            # No tenant access page
 │   ├── components/
-│   │   ├── app-bar.tsx           # Main navigation
-│   │   └── widget-preview.tsx    # Widget live preview
+│   │   ├── app-bar.tsx           # Main navigation + tenant switcher
+│   │   └── tenant-switcher.tsx   # Tenant dropdown component
 │   └── services/
 │       ├── api/                  # API client services & types
 │       ├── auth/                 # Auth HOCs & hooks
-│       ├── currency/             # CurrencyProvider context
+│       ├── tenant/               # TenantProvider & context
+│       ├── currency/             # CurrencyProvider (per-tenant)
 │       └── i18n/                 # Translation files
 
-/var/www/gift-cards-server/       # Backend (NestJS)
+/var/www/gift-cards-dev-server/       # Backend (NestJS)
 ├── src/
-│   ├── gift-cards/               # Core gift voucher module
-│   │   ├── domain/               # GiftCard & Redemption entities
-│   │   ├── dto/                  # Create, Redeem, Query DTOs
-│   │   ├── infrastructure/       # MongoDB repository & schema
-│   │   ├── utils/                # Code generation, PDF generation
-│   │   ├── gift-cards.controller.ts
-│   │   ├── gift-cards.service.ts
-│   │   └── gift-cards.module.ts
-│   ├── gift-card-templates/      # Template module (same pattern)
-│   ├── widgets/                  # Widget module (same pattern)
-│   ├── settings/                 # Singleton settings document
-│   ├── squarespace/              # Squarespace order polling
-│   ├── stripe/                   # Stripe checkout & webhooks
+│   ├── tenants/                  # Tenant module (CRUD, middleware, guard)
+│   ├── user-tenant-access/       # User-tenant mapping module
+│   ├── gift-cards/               # Gift voucher module (tenant-scoped)
+│   ├── gift-card-templates/      # Template module (tenant-scoped)
+│   ├── widgets/                  # Widget module (tenant-scoped)
+│   ├── settings/                 # Per-tenant settings
+│   ├── squarespace/              # Squarespace polling (per-tenant)
+│   ├── stripe/                   # Stripe checkout (per-tenant keys)
 │   ├── mail/                     # Email service + HBS templates
-│   ├── auth/                     # JWT auth, strategies
-│   ├── users/                    # User CRUD
+│   ├── auth/                     # JWT auth (returns tenants[])
+│   ├── users/                    # User CRUD (tenant-scoped listing)
 │   └── roles/                    # Role enum, guard, decorator`}</pre>
       </Paper>
 
@@ -869,33 +991,43 @@ function DeveloperSection() {
 
       <Sub>Database</Sub>
       <P>
-        MongoDB Atlas is used via Mongoose. Key collections (named after schema
-        classes):
+        MongoDB Atlas is used via Mongoose. All tenant-scoped collections
+        include a tenantId field with an index. Key collections:
       </P>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="body2" component="div">
+          <strong>tenantschemaclasses</strong> — Client tenants. Fields: name,
+          slug (unique), isActive.
+        </Typography>
+      </Paper>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="body2" component="div">
+          <strong>usertenantaccessschemaclasses</strong> — Maps users to
+          tenants. Fields: userId, tenantId, role (admin/staff/user). Compound
+          unique index on (userId, tenantId).
+        </Typography>
+      </Paper>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Typography variant="body2" component="div">
           <strong>giftcardschemaclasses</strong> — Gift card documents with
-          embedded redemptions array. Fields: code, templateId, widgetId,
-          originalAmount, currentBalance, purchaseDate, purchaserEmail,
-          purchaserName, recipientEmail, recipientName, status, redemptions[],
-          notes, stripeSessionId, squarespaceOrderId.
+          embedded redemptions array. Fields: tenantId, code, templateId,
+          originalAmount, currentBalance, purchaserEmail, purchaserName, status,
+          redemptions[], stripeSessionId, squarespaceOrderId.
         </Typography>
       </Paper>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="body2" component="div">
           <strong>giftcardtemplateschemaclasses</strong> — Template documents.
-          Fields: name, description, image (URL), codePosition (x, y, width,
-          height, fontSize, fontColor, alignment), qrPosition (x, y, size),
+          Fields: tenantId, name, image (URL), codePosition, qrPosition,
           redemptionType, expirationDate, codePrefix, isActive, createdBy.
         </Typography>
       </Paper>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="body2" component="div">
-          <strong>settingsschemaclasses</strong> — Singleton settings document.
-          Fields: currency, defaultRedemptionType, notificationEmails[],
-          paymentMode, paymentGateway, stripeSecretKey, stripeWebhookSecret,
-          squarespaceApiKey, squarespacePollingInterval, squarespacePayLinks[],
-          squarespaceLastPollAt.
+          <strong>settingsschemaclasses</strong> — Per-tenant settings. Fields:
+          tenantId (unique), currency, paymentMode, paymentGateway,
+          stripeSecretKey, stripeWebhookSecret, squarespaceApiKey,
+          notificationEmails[].
         </Typography>
       </Paper>
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
@@ -909,9 +1041,14 @@ function DeveloperSection() {
       <Sub>Authentication &amp; Authorisation</Sub>
       <P>
         JWT-based authentication via Passport. Tokens are issued at login and
-        refreshed via a refresh token endpoint. Role-based access control uses a
-        custom @Roles() decorator and RolesGuard that checks
-        request.user.role.id against the allowed role IDs.
+        refreshed via a refresh token endpoint. The login and /auth/me responses
+        include a tenants[] array listing the user&apos;s tenant access.
+      </P>
+      <P>
+        Multi-tenant access control uses three layers: TenantMiddleware extracts
+        the x-tenant-id header, TenantGuard validates the user has access to
+        that tenant via UserTenantAccess, and RolesGuard checks the
+        tenant-scoped role. Super admins bypass all checks.
       </P>
       <Paper
         sx={{
@@ -922,17 +1059,23 @@ function DeveloperSection() {
           overflow: "auto",
         }}
       >
-        <pre style={{ margin: 0 }}>{`// Protecting an endpoint:
+        <pre style={{ margin: 0 }}>{`// Protecting a tenant-scoped endpoint:
 @Roles(RoleEnum.admin, RoleEnum.staff)
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), TenantGuard, RolesGuard)
 
 // Role enum values:
-admin = 1, user = 2, staff = 3
+admin = 1, user = 2, staff = 3, superAdmin = 4
+
+// Tenant role resolution order:
+// 1. superAdmin (role 4) → always allowed
+// 2. TenantGuard sets tenantRole from UserTenantAccess
+// 3. RolesGuard checks tenantRole against @Roles()
 
 // Frontend page guard:
 export default withPageRequiredAuth(MyPage, {
   roles: [RoleEnum.ADMIN, RoleEnum.STAFF],
-});`}</pre>
+});
+// Checks tenant-scoped role, not global role`}</pre>
       </Paper>
 
       <Sub>Gift Voucher Lifecycle</Sub>
@@ -983,16 +1126,20 @@ export default withPageRequiredAuth(MyPage, {
         this event to avoid a restart loop.
       </P>
 
-      <Sub>Stripe Integration</Sub>
+      <Sub>Stripe Integration (Per-Tenant)</Sub>
       <P>
-        Widgets create a Stripe Checkout Session via the
-        /gift-cards/create-checkout-session endpoint. Gift card metadata
-        (template, amount, purchaser info) is stored in the session metadata.
+        Each tenant has their own Stripe secret key and webhook secret stored in
+        their Settings. Widgets create a Stripe Checkout Session via the
+        /gift-cards/create-checkout-session endpoint. The tenantId is stored in
+        the session metadata alongside gift card details.
       </P>
       <P>
         The /gift-cards/stripe-webhook endpoint receives
-        checkout.session.completed events, extracts the metadata, and calls
-        GiftCardsService.purchase() to create the gift voucher.
+        checkout.session.completed events. It parses the raw JSON to extract
+        metadata.tenantId before signature verification, then uses that
+        tenant&apos;s webhook secret to verify the signature and creates the
+        gift voucher. All client Stripe accounts point their webhooks to the
+        same server URL.
       </P>
 
       <Sub>Email System</Sub>
@@ -1193,20 +1340,20 @@ export default withPageRequiredAuth(MyPage, {
         }}
       >
         <pre style={{ margin: 0 }}>{`# Backend
-cd /var/www/gift-cards-server
+cd /var/www/gift-cards-dev-server
 npx prettier --write "src/**/*.ts"
 npm run build
-pm2 restart hurstwood-gift-cards-server
+pm2 restart gift-cards-dev-server
 
 # Frontend
-cd /var/www/gift-cards
+cd /var/www/gift-cards-dev
 npx prettier --write "src/**/*.tsx"
 npm run build
-pm2 restart hurstwood-gift-cards
+pm2 restart gift-cards-dev
 
-# Always run prettier before building.
-# Always check build output for errors.
-# Restart both services after changes.`}</pre>
+# Run seed after schema changes:
+cd /var/www/gift-cards-dev-server
+npm run seed:run:document`}</pre>
       </Paper>
 
       <Sub>Adding a New Feature (Checklist)</Sub>
@@ -1236,8 +1383,8 @@ pm2 restart hurstwood-gift-cards
           Gift cards not being created from Squarespace
         </Typography>
         <Typography variant="body2">
-          Check PM2 logs: pm2 logs hurstwood-gift-cards-server --lines 50. Look
-          for &quot;no pay link match&quot; warnings — the product name in
+          Check PM2 logs: pm2 logs gift-cards-dev-server --lines 50. Look for
+          &quot;no pay link match&quot; warnings — the product name in
           Squarespace must exactly match the pay link configuration. Verify the
           API key is valid and the polling interval is reasonable.
         </Typography>
@@ -1282,6 +1429,7 @@ const sectionComponents: Record<Section, () => React.JSX.Element> = {
   widgets: WidgetsSection,
   settings: SettingsSection,
   users: UsersSection,
+  "vendor-admin": VendorAdminSection,
   developer: DeveloperSection,
 };
 

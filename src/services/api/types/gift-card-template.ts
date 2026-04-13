@@ -8,6 +8,7 @@ export interface QrPosition {
 
 export interface GiftCardTemplate {
   id: string;
+  tenantId: string;
   name: string;
   description: string;
   image: string;

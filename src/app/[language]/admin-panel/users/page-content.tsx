@@ -42,6 +42,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import { UserFilterType, UserSortType } from "./user-filter-types";
 import { SortEnum } from "@/services/api/types/sort-type";
+import { useTenant } from "@/services/tenant/tenant-context";
+import Chip from "@mui/material/Chip";
+import Box from "@mui/material/Box";
 
 type UsersKeys = keyof User;
 
@@ -238,6 +241,7 @@ function Actions({ user }: { user: User }) {
 function Users() {
   const { t: tUsers } = useTranslation("admin-panel-users");
   const { t: tRoles } = useTranslation("admin-panel-roles");
+  const { isSuperAdmin } = useTenant();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [{ order, orderBy }, setSort] = useState<{
@@ -357,11 +361,16 @@ function Users() {
                   <TableCell style={{ width: 80 }}>
                     {tUsers("admin-panel-users:table.column4")}
                   </TableCell>
+                  {isSuperAdmin && (
+                    <TableCell>
+                      {tUsers("admin-panel-users:table.column5")}
+                    </TableCell>
+                  )}
                   <TableCell style={{ width: 130 }}></TableCell>
                 </TableRow>
                 {isFetchingNextPage && (
                   <TableRow>
-                    <TableCellLoadingContainer colSpan={6}>
+                    <TableCellLoadingContainer colSpan={isSuperAdmin ? 7 : 6}>
                       <LinearProgress />
                     </TableCellLoadingContainer>
                   </TableRow>
@@ -384,6 +393,20 @@ function Users() {
                 <TableCell style={{ width: 80 }}>
                   {tRoles(`role.${user?.role?.id}`)}
                 </TableCell>
+                {isSuperAdmin && (
+                  <TableCell>
+                    <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                      {(user?.tenantAccess || []).map((ta) => (
+                        <Chip
+                          key={ta.tenantId}
+                          label={`${ta.tenantName} (${ta.role})`}
+                          size="small"
+                          variant="outlined"
+                        />
+                      ))}
+                    </Box>
+                  </TableCell>
+                )}
                 <TableCell style={{ width: 130 }}>
                   {!!user && <Actions user={user} />}
                 </TableCell>

@@ -12,9 +12,11 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useGetGiftCardByCodeService } from "@/services/api/services/gift-cards";
 import { useGetGiftCardTemplatePublicService } from "@/services/api/services/gift-card-templates";
+import { useGetWidgetByIdPublicService } from "@/services/api/services/widgets";
 import HTTP_CODES_ENUM from "@/services/api/types/http-codes";
 import { GiftCard } from "@/services/api/types/gift-card";
 import { GiftCardTemplate } from "@/services/api/types/gift-card-template";
+import { Widget } from "@/services/api/types/widget";
 import { useCurrency } from "@/services/currency/currency-provider";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -23,11 +25,13 @@ export default function GiftCardView() {
   const params = useParams<{ code: string }>();
   const [giftCard, setGiftCard] = useState<GiftCard | null>(null);
   const [template, setTemplate] = useState<GiftCardTemplate | null>(null);
+  const [widget, setWidget] = useState<Widget | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const lookupByCode = useGetGiftCardByCodeService();
   const getTemplate = useGetGiftCardTemplatePublicService();
+  const getWidgetPublic = useGetWidgetByIdPublicService();
   const imgRef = useRef<HTMLImageElement>(null);
 
   const updateScale = useCallback(() => {}, []);
@@ -44,6 +48,14 @@ export default function GiftCardView() {
           );
           if (tStatus === HTTP_CODES_ENUM.OK) {
             setTemplate(tData);
+          }
+          if (data.widgetId) {
+            const { status: wStatus, data: wData } = await getWidgetPublic(
+              data.widgetId
+            );
+            if (wStatus === HTTP_CODES_ENUM.OK) {
+              setWidget(wData);
+            }
           }
         } else {
           setError("Gift card not found.");
@@ -75,6 +87,8 @@ export default function GiftCardView() {
     },
     [currencyCode]
   );
+
+  const wc = widget?.customization;
 
   const expirationLabel = (() => {
     if (template?.expirationMonths && giftCard) {
@@ -273,23 +287,80 @@ export default function GiftCardView() {
                 color="text.secondary"
                 sx={{ lineHeight: 1.7 }}
               >
-                All vouchers are valid for 12 months from the date of purchase.
-                <br />
-                Vouchers purchased online are subject to a 3.5% Transaction Fee.
-                <br />
-                To redeem a voucher, please make a reservation:
-                <br />
-                Website:{" "}
-                <a href="https://www.thehurstwood.com">www.thehurstwood.com</a>
-                <br />
-                Email:{" "}
-                <a href="mailto:bookings@thehurstwood.com">
-                  bookings@thehurstwood.com
-                </a>
-                <br />
-                Phone: <a href="tel:+441825732257">+44 1825 732257</a>
-                <br />
-                <strong>THIS VOUCHER DOES NOT HAVE A CASH VALUE.</strong>
+                {template?.expirationMonths && (
+                  <>
+                    All vouchers are valid for {template.expirationMonths}{" "}
+                    months from the date of purchase.
+                    <br />
+                  </>
+                )}
+                {template?.expirationDate && !template?.expirationMonths && (
+                  <>
+                    All vouchers are valid until{" "}
+                    {new Date(template.expirationDate).toLocaleDateString()}.
+                    <br />
+                  </>
+                )}
+                {template?.adminFeeType &&
+                  template.adminFeeType !== "none" &&
+                  template.adminFeeValue !== null &&
+                  template.adminFeeValue !== undefined &&
+                  template.adminFeeValue > 0 && (
+                    <>
+                      Vouchers purchased online are subject to a{" "}
+                      {template.adminFeeType === "percentage"
+                        ? `${template.adminFeeValue}%`
+                        : `${CURRENCY_SYMBOL}${template.adminFeeValue}`}{" "}
+                      Transaction Fee.
+                      <br />
+                    </>
+                  )}
+                {wc?.disclaimerRedemptionWebsite ||
+                wc?.disclaimerRedemptionEmail ||
+                wc?.disclaimerRedemptionPhone ? (
+                  <>
+                    To redeem a voucher, please make a reservation:
+                    <br />
+                    {wc.disclaimerRedemptionWebsite && (
+                      <>
+                        Website:{" "}
+                        <a
+                          href={
+                            wc.disclaimerRedemptionWebsite.startsWith("http")
+                              ? wc.disclaimerRedemptionWebsite
+                              : `https://${wc.disclaimerRedemptionWebsite}`
+                          }
+                        >
+                          {wc.disclaimerRedemptionWebsite}
+                        </a>
+                        <br />
+                      </>
+                    )}
+                    {wc.disclaimerRedemptionEmail && (
+                      <>
+                        Email:{" "}
+                        <a href={`mailto:${wc.disclaimerRedemptionEmail}`}>
+                          {wc.disclaimerRedemptionEmail}
+                        </a>
+                        <br />
+                      </>
+                    )}
+                    {wc.disclaimerRedemptionPhone && (
+                      <>
+                        Phone:{" "}
+                        <a
+                          href={`tel:${wc.disclaimerRedemptionPhone.replace(/\s/g, "")}`}
+                        >
+                          {wc.disclaimerRedemptionPhone}
+                        </a>
+                        <br />
+                      </>
+                    )}
+                  </>
+                ) : null}
+                {wc?.disclaimerNoCashValue && (
+                  <strong>THIS VOUCHER DOES NOT HAVE A CASH VALUE.</strong>
+                )}
               </Typography>
             </Box>
           </Paper>

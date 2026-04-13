@@ -53,10 +53,14 @@ export function useCreateCheckoutSessionService() {
 export function useNotifyPurchaseService() {
   const fetch = useFetch();
   return useCallback(
-    (stripeSessionId: string, requestConfig?: RequestConfigType) =>
+    (
+      stripeSessionId: string,
+      tenantId?: string,
+      requestConfig?: RequestConfigType
+    ) =>
       fetch(`${API_URL}/v1/gift-cards/notify-purchase`, {
         method: "POST",
-        body: JSON.stringify({ stripeSessionId }),
+        body: JSON.stringify({ stripeSessionId, tenantId }),
         ...requestConfig,
       }).then(wrapperFetchJsonResponse<{ sent: boolean }>),
     [fetch]

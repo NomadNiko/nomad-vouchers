@@ -99,20 +99,20 @@ export default function WidgetPageContent() {
   useEffect(() => {
     async function load() {
       if (!params.apiKey) return;
+      let loadedWidget: Widget | null = null;
       try {
-        const [widgetRes, paymentRes] = await Promise.all([
-          getWidget(params.apiKey),
-          getPaymentConfig(),
-        ]);
-        if (paymentRes.status === HTTP_CODES_ENUM.OK && paymentRes.data) {
-          setPaymentConfig(paymentRes.data);
-        }
+        const widgetRes = await getWidget(params.apiKey);
         if (widgetRes.status === HTTP_CODES_ENUM.OK && widgetRes.data) {
+          loadedWidget = widgetRes.data;
           setWidget(widgetRes.data);
-          const { status: tStatus, data: tData } = await getTemplate(
-            widgetRes.data.templateId
-          );
-          if (tStatus === HTTP_CODES_ENUM.OK) setTemplate(tData);
+          const [tplRes, paymentRes] = await Promise.all([
+            getTemplate(widgetRes.data.templateId),
+            getPaymentConfig(widgetRes.data.tenantId),
+          ]);
+          if (paymentRes.status === HTTP_CODES_ENUM.OK && paymentRes.data) {
+            setPaymentConfig(paymentRes.data);
+          }
+          if (tplRes.status === HTTP_CODES_ENUM.OK) setTemplate(tplRes.data);
         } else {
           setError("Widget not found.");
         }
@@ -123,8 +123,8 @@ export default function WidgetPageContent() {
       }
 
       const sessionId = searchParams.get("session_id");
-      if (sessionId) {
-        notifyPurchase(sessionId).catch(() => {});
+      if (sessionId && loadedWidget) {
+        notifyPurchase(sessionId, loadedWidget.tenantId).catch(() => {});
         pollForGiftCard(sessionId);
       }
     }
@@ -455,52 +455,102 @@ export default function WidgetPageContent() {
                 Disclaimer
               </Typography>
               <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }}>
-                <Typography variant="body2" sx={{ color: textColor, mb: 1 }}>
-                  All vouchers are valid for 12 months from the date of
-                  purchase.
-                </Typography>
-                <Typography variant="body2" sx={{ color: textColor, mb: 1 }}>
-                  Vouchers purchased online are subject to a 3.5% Transaction
-                  Fee.
-                </Typography>
-                <Typography variant="body2" sx={{ color: textColor, mb: 1 }}>
-                  To redeem a voucher, please make a reservation through one of
-                  the following methods:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  component="div"
-                  sx={{ color: textColor, pl: 2, mb: 1 }}
-                >
-                  Website:{" "}
-                  <a
-                    href="https://www.thehurstwood.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: c.primaryColor }}
+                {template?.expirationMonths && (
+                  <Typography variant="body2" sx={{ color: textColor, mb: 1 }}>
+                    All vouchers are valid for {template.expirationMonths}{" "}
+                    months from the date of purchase.
+                  </Typography>
+                )}
+                {template?.expirationDate && !template?.expirationMonths && (
+                  <Typography variant="body2" sx={{ color: textColor, mb: 1 }}>
+                    All vouchers are valid until{" "}
+                    {new Date(template.expirationDate).toLocaleDateString()}.
+                  </Typography>
+                )}
+                {template?.adminFeeType &&
+                  template.adminFeeType !== "none" &&
+                  template.adminFeeValue !== null &&
+                  template.adminFeeValue !== undefined &&
+                  template.adminFeeValue > 0 && (
+                    <Typography
+                      variant="body2"
+                      sx={{ color: textColor, mb: 1 }}
+                    >
+                      Vouchers purchased online are subject to a{" "}
+                      {template.adminFeeType === "percentage"
+                        ? `${template.adminFeeValue}%`
+                        : `${CURRENCY_SYMBOL}${template.adminFeeValue}`}{" "}
+                      Transaction Fee.
+                    </Typography>
+                  )}
+                {(c.disclaimerRedemptionWebsite ||
+                  c.disclaimerRedemptionEmail ||
+                  c.disclaimerRedemptionPhone) && (
+                  <>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: textColor, mb: 1 }}
+                    >
+                      To redeem a voucher, please make a reservation through one
+                      of the following methods:
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      component="div"
+                      sx={{ color: textColor, pl: 2, mb: 1 }}
+                    >
+                      {c.disclaimerRedemptionWebsite && (
+                        <>
+                          Website:{" "}
+                          <a
+                            href={
+                              c.disclaimerRedemptionWebsite.startsWith("http")
+                                ? c.disclaimerRedemptionWebsite
+                                : `https://${c.disclaimerRedemptionWebsite}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: c.primaryColor }}
+                          >
+                            {c.disclaimerRedemptionWebsite}
+                          </a>
+                          <br />
+                        </>
+                      )}
+                      {c.disclaimerRedemptionEmail && (
+                        <>
+                          Email:{" "}
+                          <a
+                            href={`mailto:${c.disclaimerRedemptionEmail}`}
+                            style={{ color: c.primaryColor }}
+                          >
+                            {c.disclaimerRedemptionEmail}
+                          </a>
+                          <br />
+                        </>
+                      )}
+                      {c.disclaimerRedemptionPhone && (
+                        <>
+                          Phone:{" "}
+                          <a
+                            href={`tel:${c.disclaimerRedemptionPhone.replace(/\s/g, "")}`}
+                            style={{ color: c.primaryColor }}
+                          >
+                            {c.disclaimerRedemptionPhone}
+                          </a>
+                        </>
+                      )}
+                    </Typography>
+                  </>
+                )}
+                {c.disclaimerNoCashValue && (
+                  <Typography
+                    variant="body2"
+                    sx={{ color: textColor, fontWeight: 700 }}
                   >
-                    www.thehurstwood.com
-                  </a>
-                  <br />
-                  Email:{" "}
-                  <a
-                    href="mailto:bookings@thehurstwood.com"
-                    style={{ color: c.primaryColor }}
-                  >
-                    bookings@thehurstwood.com
-                  </a>
-                  <br />
-                  Phone:{" "}
-                  <a href="tel:+441825732257" style={{ color: c.primaryColor }}>
-                    +44 1825 732257
-                  </a>
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ color: textColor, fontWeight: 700 }}
-                >
-                  THIS VOUCHER DOES NOT HAVE A CASH VALUE.
-                </Typography>
+                    THIS VOUCHER DOES NOT HAVE A CASH VALUE.
+                  </Typography>
+                )}
               </Paper>
               <Box sx={{ display: "flex", gap: 2 }}>
                 <Button

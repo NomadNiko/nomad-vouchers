@@ -10,10 +10,15 @@ export interface WidgetCustomization {
   headerText?: string;
   footerText?: string;
   titleDisplay?: string;
+  disclaimerRedemptionWebsite?: string;
+  disclaimerRedemptionEmail?: string;
+  disclaimerRedemptionPhone?: string;
+  disclaimerNoCashValue?: boolean;
 }
 
 export interface Widget {
   id: string;
+  tenantId: string;
   name: string;
   templateId: string;
   apiKey: string;

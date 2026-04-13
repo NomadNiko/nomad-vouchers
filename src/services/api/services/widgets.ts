@@ -76,6 +76,19 @@ export function useGetWidgetByApiKeyService() {
   );
 }
 
+// --- Get by ID (Public) ---
+export function useGetWidgetByIdPublicService() {
+  const fetch = useFetch();
+  return useCallback(
+    (id: string, requestConfig?: RequestConfigType) =>
+      fetch(`${API_URL}/v1/widgets/public/id/${id}`, {
+        method: "GET",
+        ...requestConfig,
+      }).then(wrapperFetchJsonResponse<Widget>),
+    [fetch]
+  );
+}
+
 // --- Update ---
 export type UpdateWidgetRequest = Partial<CreateWidgetRequest>;
 

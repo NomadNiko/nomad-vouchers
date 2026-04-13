@@ -40,6 +40,10 @@ type FormData = {
   footerText: string;
   isActive: boolean;
   redirectUrl: string;
+  disclaimerRedemptionWebsite: string;
+  disclaimerRedemptionEmail: string;
+  disclaimerRedemptionPhone: string;
+  disclaimerNoCashValue: boolean;
 };
 
 function EditWidget() {
@@ -85,6 +89,10 @@ function EditWidget() {
       footerText: "",
       isActive: true,
       redirectUrl: "",
+      disclaimerRedemptionWebsite: "",
+      disclaimerRedemptionEmail: "",
+      disclaimerRedemptionPhone: "",
+      disclaimerNoCashValue: true,
     },
   });
 
@@ -106,6 +114,14 @@ function EditWidget() {
         footerText: widget.customization?.footerText || "",
         isActive: widget.isActive,
         redirectUrl: widget.redirectUrl || "",
+        disclaimerRedemptionWebsite:
+          widget.customization?.disclaimerRedemptionWebsite || "",
+        disclaimerRedemptionEmail:
+          widget.customization?.disclaimerRedemptionEmail || "",
+        disclaimerRedemptionPhone:
+          widget.customization?.disclaimerRedemptionPhone || "",
+        disclaimerNoCashValue:
+          widget.customization?.disclaimerNoCashValue ?? true,
       });
     }
   }, [widget, reset]);
@@ -129,6 +145,13 @@ function EditWidget() {
           titleDisplay: formData.titleDisplay || undefined,
           headerText: formData.headerText || undefined,
           footerText: formData.footerText || undefined,
+          disclaimerRedemptionWebsite:
+            formData.disclaimerRedemptionWebsite || undefined,
+          disclaimerRedemptionEmail:
+            formData.disclaimerRedemptionEmail || undefined,
+          disclaimerRedemptionPhone:
+            formData.disclaimerRedemptionPhone || undefined,
+          disclaimerNoCashValue: formData.disclaimerNoCashValue,
         },
         isActive: formData.isActive,
         redirectUrl: formData.redirectUrl || undefined,
@@ -433,6 +456,75 @@ function EditWidget() {
                   fullWidth
                   placeholder="https://yoursite.com/gift-cards"
                   helperText="The page where this widget is embedded. After Stripe payment, users are redirected back here."
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid size={12}>
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+              Disclaimer Settings
+            </Typography>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Controller
+              name="disclaimerRedemptionWebsite"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Redemption Website"
+                  fullWidth
+                  placeholder="www.example.com"
+                  helperText="Shown in the disclaimer as the website to book/redeem"
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Controller
+              name="disclaimerRedemptionEmail"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Redemption Email"
+                  fullWidth
+                  placeholder="bookings@example.com"
+                  helperText="Shown in the disclaimer as the email to book/redeem"
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Controller
+              name="disclaimerRedemptionPhone"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Redemption Phone"
+                  fullWidth
+                  placeholder="+44 1234 567890"
+                  helperText="Shown in the disclaimer as the phone number to book/redeem"
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Controller
+              name="disclaimerNoCashValue"
+              control={control}
+              render={({ field }) => (
+                <FormControlLabel
+                  control={
+                    <Switch checked={field.value} onChange={field.onChange} />
+                  }
+                  label='Show "This voucher does not have a cash value" disclaimer'
                 />
               )}
             />

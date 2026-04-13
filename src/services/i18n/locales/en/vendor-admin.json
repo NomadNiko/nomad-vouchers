@@ -1,0 +1,53 @@
+{
+  "title": "Clients",
+  "actions": {
+    "create": "Create Client",
+    "edit": "Edit",
+    "save": "Save",
+    "addUser": "Add"
+  },
+  "table": {
+    "name": "Name",
+    "slug": "Slug",
+    "status": "Status",
+    "created": "Created",
+    "actions": "Actions"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "create": {
+    "title": "Create Client",
+    "inputs": {
+      "name": "Name",
+      "slug": "Slug",
+      "slugHelp": "URL-friendly identifier (lowercase, hyphens only)"
+    },
+    "errors": {
+      "slugExists": "Failed to create client. Slug may already exist."
+    }
+  },
+  "edit": {
+    "title": "Edit Client",
+    "inputs": {
+      "name": "Name",
+      "slug": "Slug",
+      "active": "Active"
+    },
+    "userAccess": {
+      "title": "User Access",
+      "selectUser": "Select user...",
+      "roles": {
+        "admin": "Admin",
+        "staff": "Staff",
+        "user": "User"
+      },
+      "table": {
+        "user": "User",
+        "role": "Role",
+        "actions": "Actions"
+      }
+    }
+  }
+}

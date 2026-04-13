@@ -23,6 +23,7 @@ import FacebookAuthProvider from "@/services/social-auth/facebook/facebook-auth-
 import ConfirmDialogProvider from "@/components/confirm-dialog/confirm-dialog-provider";
 import InitColorSchemeScript from "@/components/theme/init-color-scheme-script";
 import { CurrencyProvider } from "@/services/currency/currency-provider";
+import TenantProvider from "@/services/tenant/tenant-provider";
 
 type Props = {
   params: Promise<{ language: string }>;
@@ -66,14 +67,16 @@ export default async function RootLayout(props: {
                   <GoogleAuthProvider>
                     <FacebookAuthProvider>
                       <LeavePageProvider>
-                        <CurrencyProvider>
-                          <ResponsiveAppBar />
-                          {children}
-                          <ToastContainer
-                            position="bottom-left"
-                            hideProgressBar
-                          />
-                        </CurrencyProvider>
+                        <TenantProvider>
+                          <CurrencyProvider>
+                            <ResponsiveAppBar />
+                            {children}
+                            <ToastContainer
+                              position="bottom-left"
+                              hideProgressBar
+                            />
+                          </CurrencyProvider>
+                        </TenantProvider>
                       </LeavePageProvider>
                     </FacebookAuthProvider>
                   </GoogleAuthProvider>

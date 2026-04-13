@@ -12,6 +12,7 @@ export interface Redemption {
 
 export interface GiftCard {
   id: string;
+  tenantId: string;
   code: string;
   templateId: string;
   widgetId?: string;

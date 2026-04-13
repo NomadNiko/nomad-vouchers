@@ -9,6 +9,7 @@ import {
 } from "react";
 import { API_URL } from "@/services/api/config";
 import { CURRENCY_SYMBOLS } from "@/services/api/types/settings";
+import { useTenant } from "@/services/tenant/tenant-context";
 
 type CurrencyContextType = {
   symbol: string;
@@ -21,13 +22,15 @@ const CurrencyContext = createContext<CurrencyContextType>({
 });
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
+  const { currentTenantId } = useTenant();
   const [currency, setCurrency] = useState<CurrencyContextType>({
     symbol: "£",
     code: "GBP",
   });
 
   useEffect(() => {
-    fetch(`${API_URL}/v1/settings`)
+    if (!currentTenantId) return;
+    fetch(`${API_URL}/v1/settings?tenantId=${currentTenantId}`)
       .then((r) => r.json())
       .then((data) => {
         if (data?.currency) {
@@ -38,7 +41,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [currentTenantId]);
 
   return (
     <CurrencyContext.Provider value={currency}>
