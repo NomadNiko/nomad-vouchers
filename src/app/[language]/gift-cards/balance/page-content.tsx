@@ -16,7 +16,7 @@ import {
 } from "@/services/api/services/gift-cards";
 import HTTP_CODES_ENUM from "@/services/api/types/http-codes";
 import { GiftCard } from "@/services/api/types/gift-card";
-import { useCurrency } from "@/services/currency/currency-provider";
+import { API_URL } from "@/services/api/config";
 import { useSearchParams } from "next/navigation";
 
 const statusColors: Record<
@@ -30,17 +30,34 @@ const statusColors: Record<
 };
 
 export default function BalanceLookup() {
-  const { symbol: CURRENCY_SYMBOL } = useCurrency();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("code") || "");
   const [results, setResults] = useState<GiftCard[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [currencySymbol, setCurrencySymbol] = useState("£");
+  const CURRENCY_SYMBOL = currencySymbol;
   const autoSearched = useRef(false);
 
   const lookupByCode = useGetGiftCardByCodeService();
   const lookupByEmail = useGetGiftCardsByEmailService();
+
+  const fetchCurrencyForTenant = useCallback((tenantId: string) => {
+    fetch(`${API_URL}/v1/settings?tenantId=${tenantId}`)
+      .then((r) => r.json())
+      .then((s) => {
+        if (s?.currency) {
+          const symbols: Record<string, string> = {
+            GBP: "£",
+            EUR: "€",
+            USD: "$",
+          };
+          setCurrencySymbol(symbols[s.currency] || "£");
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSearch = useCallback(async () => {
     const q = query.trim();
@@ -56,11 +73,13 @@ export default function BalanceLookup() {
           setResults(data);
           if (data.length === 0)
             setError("No gift vouchers found for this email.");
+          else if (data[0]?.tenantId) fetchCurrencyForTenant(data[0].tenantId);
         }
       } else {
         const { status, data } = await lookupByCode(q.toUpperCase());
         if (status === HTTP_CODES_ENUM.OK && data) {
           setResults([data]);
+          if (data.tenantId) fetchCurrencyForTenant(data.tenantId);
         } else {
           setError("Gift card not found.");
         }
@@ -70,7 +89,7 @@ export default function BalanceLookup() {
     } finally {
       setLoading(false);
     }
-  }, [query, lookupByCode, lookupByEmail]);
+  }, [query, lookupByCode, lookupByEmail, fetchCurrencyForTenant]);
 
   useEffect(() => {
     if (searchParams.get("code") && !autoSearched.current) {

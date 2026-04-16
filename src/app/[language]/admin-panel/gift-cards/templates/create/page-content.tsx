@@ -346,6 +346,7 @@ function CreateTemplate() {
               render={({ field, fieldState }) => (
                 <TextField
                   {...field}
+                  onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                   label="Code Prefix"
                   fullWidth
                   error={!!fieldState.error}

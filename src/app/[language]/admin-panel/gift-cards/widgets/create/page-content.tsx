@@ -40,6 +40,9 @@ type FormData = {
   disclaimerRedemptionEmail: string;
   disclaimerRedemptionPhone: string;
   disclaimerNoCashValue: boolean;
+  presetAmounts: string;
+  allowCustomAmount: boolean;
+  minimumCustomAmount: string;
 };
 
 function CreateWidget() {
@@ -77,6 +80,9 @@ function CreateWidget() {
       disclaimerRedemptionEmail: "",
       disclaimerRedemptionPhone: "",
       disclaimerNoCashValue: true,
+      presetAmounts: "25, 50, 75, 100, 150, 200",
+      allowCustomAmount: true,
+      minimumCustomAmount: "",
     },
   });
 
@@ -106,6 +112,16 @@ function CreateWidget() {
           disclaimerRedemptionPhone:
             formData.disclaimerRedemptionPhone || undefined,
           disclaimerNoCashValue: formData.disclaimerNoCashValue,
+          presetAmounts: formData.presetAmounts
+            ? formData.presetAmounts
+                .split(",")
+                .map((s) => parseFloat(s.trim()))
+                .filter((n) => !isNaN(n))
+            : undefined,
+          allowCustomAmount: formData.allowCustomAmount,
+          minimumCustomAmount: formData.minimumCustomAmount
+            ? parseFloat(formData.minimumCustomAmount)
+            : undefined,
         },
         isActive: formData.isActive,
         redirectUrl: formData.redirectUrl || undefined,
@@ -469,6 +485,58 @@ function CreateWidget() {
                     <Switch checked={field.value} onChange={field.onChange} />
                   }
                   label='Show "This voucher does not have a cash value" disclaimer'
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid size={12}>
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+              Amount Settings
+            </Typography>
+          </Grid>
+
+          <Grid size={12}>
+            <Controller
+              name="presetAmounts"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Preset Amounts"
+                  fullWidth
+                  helperText="Comma-separated values shown as quick-select buttons (e.g. 25, 50, 75, 100)"
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Controller
+              name="allowCustomAmount"
+              control={control}
+              render={({ field }) => (
+                <FormControlLabel
+                  control={
+                    <Switch checked={field.value} onChange={field.onChange} />
+                  }
+                  label="Allow custom amount entry"
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Controller
+              name="minimumCustomAmount"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Minimum Custom Amount"
+                  fullWidth
+                  type="number"
+                  helperText="Leave empty for no minimum (defaults to 1)"
                 />
               )}
             />

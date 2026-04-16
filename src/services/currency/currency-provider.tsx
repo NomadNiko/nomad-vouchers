@@ -21,16 +21,24 @@ const CurrencyContext = createContext<CurrencyContextType>({
   code: "GBP",
 });
 
-export function CurrencyProvider({ children }: { children: ReactNode }) {
+export function CurrencyProvider({
+  children,
+  tenantId: propTenantId,
+}: {
+  children: ReactNode;
+  tenantId?: string | null;
+}) {
   const { currentTenantId } = useTenant();
+  const resolvedTenantId = propTenantId || currentTenantId;
+
   const [currency, setCurrency] = useState<CurrencyContextType>({
     symbol: "£",
     code: "GBP",
   });
 
   useEffect(() => {
-    if (!currentTenantId) return;
-    fetch(`${API_URL}/v1/settings?tenantId=${currentTenantId}`)
+    if (!resolvedTenantId) return;
+    fetch(`${API_URL}/v1/settings?tenantId=${resolvedTenantId}`)
       .then((r) => r.json())
       .then((data) => {
         if (data?.currency) {
@@ -41,7 +49,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch(() => {});
-  }, [currentTenantId]);
+  }, [resolvedTenantId]);
 
   return (
     <CurrencyContext.Provider value={currency}>

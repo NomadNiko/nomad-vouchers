@@ -17,17 +17,19 @@ import HTTP_CODES_ENUM from "@/services/api/types/http-codes";
 import { GiftCard } from "@/services/api/types/gift-card";
 import { GiftCardTemplate } from "@/services/api/types/gift-card-template";
 import { Widget } from "@/services/api/types/widget";
-import { useCurrency } from "@/services/currency/currency-provider";
+import { API_URL } from "@/services/api/config";
 import { QRCodeSVG } from "qrcode.react";
 
 export default function GiftCardView() {
-  const { symbol: CURRENCY_SYMBOL, code: currencyCode } = useCurrency();
   const params = useParams<{ code: string }>();
   const [giftCard, setGiftCard] = useState<GiftCard | null>(null);
   const [template, setTemplate] = useState<GiftCardTemplate | null>(null);
   const [widget, setWidget] = useState<Widget | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currencySymbol, setCurrencySymbol] = useState("£");
+  const [currencyCode, setCurrencyCode] = useState("GBP");
+  const CURRENCY_SYMBOL = currencySymbol;
 
   const lookupByCode = useGetGiftCardByCodeService();
   const getTemplate = useGetGiftCardTemplatePublicService();
@@ -43,6 +45,23 @@ export default function GiftCardView() {
         const { status, data } = await lookupByCode(params.code);
         if (status === HTTP_CODES_ENUM.OK && data) {
           setGiftCard(data);
+          // Fetch tenant currency
+          if (data.tenantId) {
+            fetch(`${API_URL}/v1/settings?tenantId=${data.tenantId}`)
+              .then((r) => r.json())
+              .then((s) => {
+                if (s?.currency) {
+                  const symbols: Record<string, string> = {
+                    GBP: "£",
+                    EUR: "€",
+                    USD: "$",
+                  };
+                  setCurrencySymbol(symbols[s.currency] || "£");
+                  setCurrencyCode(s.currency);
+                }
+              })
+              .catch(() => {});
+          }
           const { status: tStatus, data: tData } = await getTemplate(
             data.templateId
           );

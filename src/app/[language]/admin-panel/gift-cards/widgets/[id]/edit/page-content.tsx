@@ -44,6 +44,9 @@ type FormData = {
   disclaimerRedemptionEmail: string;
   disclaimerRedemptionPhone: string;
   disclaimerNoCashValue: boolean;
+  presetAmounts: string;
+  allowCustomAmount: boolean;
+  minimumCustomAmount: string;
 };
 
 function EditWidget() {
@@ -93,6 +96,9 @@ function EditWidget() {
       disclaimerRedemptionEmail: "",
       disclaimerRedemptionPhone: "",
       disclaimerNoCashValue: true,
+      presetAmounts: "25, 50, 75, 100, 150, 200",
+      allowCustomAmount: true,
+      minimumCustomAmount: "",
     },
   });
 
@@ -122,6 +128,13 @@ function EditWidget() {
           widget.customization?.disclaimerRedemptionPhone || "",
         disclaimerNoCashValue:
           widget.customization?.disclaimerNoCashValue ?? true,
+        presetAmounts: widget.customization?.presetAmounts
+          ? widget.customization.presetAmounts.join(", ")
+          : "25, 50, 75, 100, 150, 200",
+        allowCustomAmount: widget.customization?.allowCustomAmount ?? true,
+        minimumCustomAmount: widget.customization?.minimumCustomAmount
+          ? String(widget.customization.minimumCustomAmount)
+          : "",
       });
     }
   }, [widget, reset]);
@@ -142,19 +155,27 @@ function EditWidget() {
           fieldLabelColor: formData.fieldLabelColor || undefined,
           fieldTextColor: formData.fieldTextColor || undefined,
           buttonText: formData.buttonText,
-          titleDisplay: formData.titleDisplay || undefined,
-          headerText: formData.headerText || undefined,
-          footerText: formData.footerText || undefined,
+          titleDisplay: formData.titleDisplay || "",
+          headerText: formData.headerText || "",
+          footerText: formData.footerText || "",
           disclaimerRedemptionWebsite:
-            formData.disclaimerRedemptionWebsite || undefined,
-          disclaimerRedemptionEmail:
-            formData.disclaimerRedemptionEmail || undefined,
-          disclaimerRedemptionPhone:
-            formData.disclaimerRedemptionPhone || undefined,
+            formData.disclaimerRedemptionWebsite || "",
+          disclaimerRedemptionEmail: formData.disclaimerRedemptionEmail || "",
+          disclaimerRedemptionPhone: formData.disclaimerRedemptionPhone || "",
           disclaimerNoCashValue: formData.disclaimerNoCashValue,
+          presetAmounts: formData.presetAmounts
+            ? formData.presetAmounts
+                .split(",")
+                .map((s) => parseFloat(s.trim()))
+                .filter((n) => !isNaN(n))
+            : [],
+          allowCustomAmount: formData.allowCustomAmount,
+          minimumCustomAmount: formData.minimumCustomAmount
+            ? parseFloat(formData.minimumCustomAmount)
+            : undefined,
         },
         isActive: formData.isActive,
-        redirectUrl: formData.redirectUrl || undefined,
+        redirectUrl: formData.redirectUrl || "",
       });
       if (status === HTTP_CODES_ENUM.OK) {
         router.push("/admin-panel/gift-cards/widgets");
@@ -525,6 +546,58 @@ function EditWidget() {
                     <Switch checked={field.value} onChange={field.onChange} />
                   }
                   label='Show "This voucher does not have a cash value" disclaimer'
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid size={12}>
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+              Amount Settings
+            </Typography>
+          </Grid>
+
+          <Grid size={12}>
+            <Controller
+              name="presetAmounts"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Preset Amounts"
+                  fullWidth
+                  helperText="Comma-separated values shown as quick-select buttons (e.g. 25, 50, 75, 100)"
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Controller
+              name="allowCustomAmount"
+              control={control}
+              render={({ field }) => (
+                <FormControlLabel
+                  control={
+                    <Switch checked={field.value} onChange={field.onChange} />
+                  }
+                  label="Allow custom amount entry"
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Controller
+              name="minimumCustomAmount"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Minimum Custom Amount"
+                  fullWidth
+                  type="number"
+                  helperText="Leave empty for no minimum (defaults to 1)"
                 />
               )}
             />

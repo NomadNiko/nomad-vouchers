@@ -23,13 +23,12 @@ import HTTP_CODES_ENUM from "@/services/api/types/http-codes";
 import { Widget } from "@/services/api/types/widget";
 import { GiftCardTemplate } from "@/services/api/types/gift-card-template";
 import { GiftCard } from "@/services/api/types/gift-card";
-import { useCurrency } from "@/services/currency/currency-provider";
+import { API_URL } from "@/services/api/config";
 import { Special_Elite } from "next/font/google";
 
 const specialElite = Special_Elite({ weight: "400", subsets: ["latin"] });
 
 export default function WidgetPageContent() {
-  const { symbol: CURRENCY_SYMBOL } = useCurrency();
   const params = useParams<{ apiKey: string }>();
   const searchParams = useSearchParams();
 
@@ -46,6 +45,9 @@ export default function WidgetPageContent() {
   const [template, setTemplate] = useState<GiftCardTemplate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currencySymbol, setCurrencySymbol] = useState("£");
+
+  const CURRENCY_SYMBOL = currencySymbol;
 
   const [activeStep, setActiveStep] = useState(0);
   const [amount, setAmount] = useState("25");
@@ -105,6 +107,10 @@ export default function WidgetPageContent() {
         if (widgetRes.status === HTTP_CODES_ENUM.OK && widgetRes.data) {
           loadedWidget = widgetRes.data;
           setWidget(widgetRes.data);
+          const presets = widgetRes.data.customization?.presetAmounts;
+          if (presets && presets.length > 0) {
+            setAmount(String(presets[0]));
+          }
           const [tplRes, paymentRes] = await Promise.all([
             getTemplate(widgetRes.data.templateId),
             getPaymentConfig(widgetRes.data.tenantId),
@@ -113,6 +119,20 @@ export default function WidgetPageContent() {
             setPaymentConfig(paymentRes.data);
           }
           if (tplRes.status === HTTP_CODES_ENUM.OK) setTemplate(tplRes.data);
+          // Fetch currency for this tenant
+          fetch(`${API_URL}/v1/settings?tenantId=${widgetRes.data.tenantId}`)
+            .then((r) => r.json())
+            .then((s) => {
+              if (s?.currency) {
+                const symbols: Record<string, string> = {
+                  GBP: "£",
+                  EUR: "€",
+                  USD: "$",
+                };
+                setCurrencySymbol(symbols[s.currency] || "£");
+              }
+            })
+            .catch(() => {});
         } else {
           setError("Widget not found.");
         }
@@ -192,7 +212,6 @@ export default function WidgetPageContent() {
     }
   };
 
-  const canProceedStep0 = parseFloat(amount) >= 1;
   const canProceedStep1 =
     purchaserName.trim() !== "" && purchaserEmail.includes("@");
 
@@ -211,6 +230,13 @@ export default function WidgetPageContent() {
   const labelColor = c.fieldLabelColor || undefined;
   const fieldColor = c.fieldTextColor || undefined;
   const secondaryColor = c.secondaryColor || c.primaryColor;
+  const presetAmounts =
+    c.presetAmounts && c.presetAmounts.length > 0
+      ? c.presetAmounts
+      : [25, 50, 75, 100, 150, 200];
+  const allowCustom = c.allowCustomAmount !== false;
+  const minCustom = c.minimumCustomAmount || 1;
+  const canProceedStep0 = parseFloat(amount) >= minCustom;
 
   const tfSx = {
     "& .MuiInputLabel-root": labelColor ? { color: labelColor } : {},
@@ -267,7 +293,7 @@ export default function WidgetPageContent() {
                 color: textColor,
               }}
             >
-              {c.titleDisplay || "The Hurstwood"}
+              {c.titleDisplay || "Nomad Vouchers"}
             </Typography>
           )}
           {error && (
@@ -301,7 +327,7 @@ export default function WidgetPageContent() {
                 Choose an amount
               </Typography>
               <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
-                {[25, 50, 75, 100, 150, 200].map((v) => (
+                {presetAmounts.map((v) => (
                   <Button
                     key={v}
                     size="small"
@@ -320,16 +346,23 @@ export default function WidgetPageContent() {
                   </Button>
                 ))}
               </Box>
-              <TextField
-                label="Custom Amount"
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                inputProps={{ min: 1, step: 0.01 }}
-                fullWidth
-                size="small"
-                sx={{ mb: 2, ...tfSx }}
-              />
+              {allowCustom && (
+                <TextField
+                  label="Custom Amount"
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  inputProps={{ min: minCustom, step: 0.01 }}
+                  fullWidth
+                  size="small"
+                  helperText={
+                    minCustom > 1
+                      ? `Minimum ${CURRENCY_SYMBOL}${minCustom}`
+                      : undefined
+                  }
+                  sx={{ mb: 2, ...tfSx }}
+                />
+              )}
               <Button
                 variant="contained"
                 fullWidth

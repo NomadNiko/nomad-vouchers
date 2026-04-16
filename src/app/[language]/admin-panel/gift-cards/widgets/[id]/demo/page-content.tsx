@@ -167,7 +167,7 @@ function WidgetDemo() {
                   fontWeight: 700,
                 }}
               >
-                The Hurstwood
+                Nomad Vouchers
               </Typography>
             )}
 

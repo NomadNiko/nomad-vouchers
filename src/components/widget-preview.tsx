@@ -71,7 +71,7 @@ export default function WidgetPreview(props: PreviewProps) {
               fontSize: "0.9rem",
             }}
           >
-            {titleDisplay || "The Hurstwood"}
+            {titleDisplay || "Nomad Vouchers"}
           </Typography>
           {templateImage && (
             <Box sx={{ textAlign: "center", mb: 1 }}>
@@ -140,7 +140,7 @@ export default function WidgetPreview(props: PreviewProps) {
               fontSize: "0.9rem",
             }}
           >
-            {titleDisplay || "The Hurstwood"}
+            {titleDisplay || "Nomad Vouchers"}
           </Typography>
           <Typography
             variant="caption"

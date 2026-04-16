@@ -14,6 +14,9 @@ export interface WidgetCustomization {
   disclaimerRedemptionEmail?: string;
   disclaimerRedemptionPhone?: string;
   disclaimerNoCashValue?: boolean;
+  presetAmounts?: number[];
+  allowCustomAmount?: boolean;
+  minimumCustomAmount?: number;
 }
 
 export interface Widget {

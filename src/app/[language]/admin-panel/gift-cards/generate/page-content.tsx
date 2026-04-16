@@ -11,7 +11,7 @@ import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Alert from "@mui/material/Alert";
 import { useState, useCallback } from "react";
-import { useGetActiveGiftCardTemplatesService } from "@/services/api/services/gift-card-templates";
+import { useGetWidgetsService } from "@/services/api/services/widgets";
 import { usePurchaseGiftCardService } from "@/services/api/services/gift-cards";
 import HTTP_CODES_ENUM from "@/services/api/types/http-codes";
 import { useQuery } from "@tanstack/react-query";
@@ -19,18 +19,20 @@ import { useCurrency } from "@/services/currency/currency-provider";
 
 function GenerateGiftCard() {
   const { symbol: CURRENCY_SYMBOL } = useCurrency();
-  const getActiveTemplates = useGetActiveGiftCardTemplatesService();
+  const getWidgets = useGetWidgetsService();
   const purchaseGiftCard = usePurchaseGiftCardService();
 
-  const { data: templates } = useQuery({
-    queryKey: ["activeTemplates"],
+  const { data: widgetsData } = useQuery({
+    queryKey: ["widgets-for-generate"],
     queryFn: async () => {
-      const { status, data } = await getActiveTemplates();
-      return status === HTTP_CODES_ENUM.OK ? data : [];
+      const { status, data } = await getWidgets({ page: 1, limit: 50 });
+      return status === HTTP_CODES_ENUM.OK ? data?.data || [] : [];
     },
   });
 
-  const [templateId, setTemplateId] = useState("");
+  const widgets = (widgetsData || []).filter((w) => w.isActive);
+
+  const [widgetId, setWidgetId] = useState("");
   const [amount, setAmount] = useState("");
   const [fromName, setFromName] = useState("");
   const [recipientName, setRecipientName] = useState("");
@@ -40,14 +42,17 @@ function GenerateGiftCard() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const selectedWidget = widgets.find((w) => w.id === widgetId);
+
   const handleGenerate = useCallback(async () => {
-    if (!templateId || !amount || !fromName) return;
+    if (!selectedWidget || !amount || !fromName) return;
     setSaving(true);
     setError(null);
     setSuccess(null);
     try {
       const { status, data } = await purchaseGiftCard({
-        templateId,
+        templateId: selectedWidget.templateId,
+        widgetId: selectedWidget.id,
         originalAmount: parseFloat(amount),
         purchaserName: fromName,
         purchaserEmail: recipientEmail || "noreply@generated.local",
@@ -73,7 +78,7 @@ function GenerateGiftCard() {
       setSaving(false);
     }
   }, [
-    templateId,
+    selectedWidget,
     amount,
     fromName,
     recipientName,
@@ -84,7 +89,7 @@ function GenerateGiftCard() {
   ]);
 
   const canSubmit =
-    templateId && parseFloat(amount) >= 1 && fromName.trim() !== "";
+    widgetId && parseFloat(amount) >= 1 && fromName.trim() !== "";
 
   return (
     <Container maxWidth="sm">
@@ -114,14 +119,15 @@ function GenerateGiftCard() {
               <Grid size={12}>
                 <TextField
                   select
-                  label="Template *"
-                  value={templateId}
-                  onChange={(e) => setTemplateId(e.target.value)}
+                  label="Widget *"
+                  value={widgetId}
+                  onChange={(e) => setWidgetId(e.target.value)}
                   fullWidth
+                  helperText="Select the widget to use for this voucher's template and disclaimer settings"
                 >
-                  {(templates || []).map((t) => (
-                    <MenuItem key={t.id} value={t.id}>
-                      {t.name}
+                  {widgets.map((w) => (
+                    <MenuItem key={w.id} value={w.id}>
+                      {w.name}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -144,7 +150,7 @@ function GenerateGiftCard() {
                   value={fromName}
                   onChange={(e) => setFromName(e.target.value)}
                   fullWidth
-                  helperText="Who is this gift voucher from? e.g. The Hurstwood"
+                  helperText="Who is this gift voucher from? e.g. your business name"
                 />
               </Grid>
 
