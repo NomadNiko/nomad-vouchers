@@ -12,4 +12,6 @@ export type Tenant = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  transactionCount?: number;
+  userCount?: number;
 };

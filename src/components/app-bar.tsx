@@ -248,6 +248,22 @@ function ResponsiveAppBar() {
                 >
                   {t("common:navigation.vendorAdmin")}
                 </MenuItem>,
+                <MenuItem
+                  key="transactions"
+                  onClick={handleCloseNavMenu}
+                  component={Link}
+                  href="/admin-panel/transactions"
+                >
+                  {t("common:navigation.transactions")}
+                </MenuItem>,
+                <MenuItem
+                  key="logs"
+                  onClick={handleCloseNavMenu}
+                  component={Link}
+                  href="/admin-panel/logs"
+                >
+                  {t("common:navigation.logs")}
+                </MenuItem>,
               ]}
 
               {isLoaded &&
@@ -361,13 +377,23 @@ function ResponsiveAppBar() {
             )}
 
             {isSuperAdmin && (
-              <Button
-                sx={{ my: 2, color: "white" }}
-                component={Link}
-                href="/admin-panel/vendor-admin"
-              >
-                {t("common:navigation.vendorAdmin")}
-              </Button>
+              <NavDropdown
+                label={t("common:navigation.superAdmin")}
+                items={[
+                  {
+                    href: "/admin-panel/vendor-admin",
+                    text: t("common:navigation.vendorAdmin"),
+                  },
+                  {
+                    href: "/admin-panel/transactions",
+                    text: t("common:navigation.transactions"),
+                  },
+                  {
+                    href: "/admin-panel/logs",
+                    text: t("common:navigation.logs"),
+                  },
+                ]}
+              />
             )}
           </Box>
 

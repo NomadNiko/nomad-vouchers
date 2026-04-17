@@ -18,7 +18,10 @@
     "widgets": "Widgets",
     "settings": "Settings",
     "docs": "Docs",
-    "vendorAdmin": "Vendor Admin"
+    "vendorAdmin": "Vendor Admin",
+    "transactions": "Transactions",
+    "logs": "Logs",
+    "superAdmin": "Super Admin"
   },
   "noAccess": {
     "title": "No Access",

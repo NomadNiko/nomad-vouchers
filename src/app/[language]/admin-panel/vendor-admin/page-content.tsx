@@ -58,12 +58,15 @@ function VendorAdmin() {
       </Box>
 
       <TableContainer component={Paper}>
-        <Table>
+        <Table size="small">
           <TableHead>
             <TableRow>
               <TableCell>{t("vendor-admin:table.name")}</TableCell>
+              <TableCell>ID</TableCell>
               <TableCell>{t("vendor-admin:table.slug")}</TableCell>
               <TableCell>{t("vendor-admin:table.status")}</TableCell>
+              <TableCell>Users</TableCell>
+              <TableCell>Transactions</TableCell>
               <TableCell>{t("vendor-admin:table.created")}</TableCell>
               <TableCell>{t("vendor-admin:table.actions")}</TableCell>
             </TableRow>
@@ -72,6 +75,14 @@ function VendorAdmin() {
             {tenants.map((tenant) => (
               <TableRow key={tenant.id}>
                 <TableCell>{tenant.name}</TableCell>
+                <TableCell>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontFamily: "monospace" }}
+                  >
+                    {tenant.id}
+                  </Typography>
+                </TableCell>
                 <TableCell>{tenant.slug}</TableCell>
                 <TableCell>
                   <Chip
@@ -84,6 +95,8 @@ function VendorAdmin() {
                     size="small"
                   />
                 </TableCell>
+                <TableCell>{tenant.userCount ?? "—"}</TableCell>
+                <TableCell>{tenant.transactionCount ?? "—"}</TableCell>
                 <TableCell>
                   {new Date(tenant.createdAt).toLocaleDateString()}
                 </TableCell>
